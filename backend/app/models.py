@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, ForeignKey,
-    Text, Float, Enum as SQLEnum
+    Text, Float, Enum as SQLEnum, JSON, Index
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -19,6 +19,12 @@ class MembershipStatus(str, enum.Enum):
     EXPIRED = "expired"
 
 
+class UserStatus(str, enum.Enum):
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    DELETED = "deleted"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -27,12 +33,14 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=True)
     role = Column(SQLEnum(UserRole), default=UserRole.USER, nullable=False)
+    status = Column(SQLEnum(UserStatus), default=UserStatus.ACTIVE)
     membership = Column(SQLEnum(MembershipStatus), default=MembershipStatus.FREE)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     websites = relationship("Website", back_populates="owner", cascade="all, delete-orphan")
+    memberships = relationship("Membership", back_populates="user", cascade="all, delete-orphan")
 
 
 class Website(Base):
@@ -42,12 +50,36 @@ class Website(Base):
     name = Column(String(255), nullable=False)
     domain = Column(String(255), nullable=False, index=True)
     api_key = Column(String(64), unique=True, index=True, nullable=False)
+    public_key = Column(String(32), unique=True, index=True, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="websites")
     pageviews = relationship("PageView", back_populates="website", cascade="all, delete-orphan")
+    sessions = relationship("Session", back_populates="website", cascade="all, delete-orphan")
+    events = relationship("Event", back_populates="website", cascade="all, delete-orphan")
+
+
+class Session(Base):
+    __tablename__ = "sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    visitor_id = Column(String(64), nullable=False, index=True)
+    session_id = Column(String(64), unique=True, nullable=False, index=True)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    ended_at = Column(DateTime(timezone=True), nullable=True)
+    duration = Column(Integer, default=0)
+    pageview_count = Column(Integer, default=0)
+    is_bounce = Column(Boolean, default=True)
+    country = Column(String(100), nullable=True)
+    device = Column(String(50), nullable=True)
+    browser = Column(String(100), nullable=True)
+    os = Column(String(100), nullable=True)
+
+    website = relationship("Website", back_populates="sessions")
+    pageviews = relationship("PageView", back_populates="session")
 
 
 class PageView(Base):
@@ -55,15 +87,60 @@ class PageView(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"), nullable=True, index=True)
+    visitor_id = Column(String(64), nullable=True, index=True)
     path = Column(String(512), nullable=False)
+    title = Column(String(512), nullable=True)
     referrer = Column(String(512), nullable=True)
     user_agent = Column(Text, nullable=True)
     ip_address = Column(String(45), nullable=True)
     country = Column(String(100), nullable=True)
-    device = Column(String(50), nullable=True)  # mobile / desktop / tablet
+    city = Column(String(100), nullable=True)
+    device = Column(String(50), nullable=True)
     browser = Column(String(100), nullable=True)
+    os = Column(String(100), nullable=True)
+    screen_width = Column(Integer, nullable=True)
+    screen_height = Column(Integer, nullable=True)
+    language = Column(String(20), nullable=True)
+    utm_source = Column(String(100), nullable=True)
+    utm_medium = Column(String(100), nullable=True)
+    utm_campaign = Column(String(100), nullable=True)
     is_bot = Column(Boolean, default=False)
-    session_id = Column(String(64), nullable=True, index=True)
+    traffic_score = Column(Float, default=1.0)
+    traffic_label = Column(String(20), default="human")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     website = relationship("Website", back_populates="pageviews")
+    session = relationship("Session", back_populates="pageviews")
+
+    __table_args__ = (
+        Index("ix_pageviews_website_created", "website_id", "created_at"),
+    )
+
+
+class Event(Base):
+    __tablename__ = "events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    website_id = Column(Integer, ForeignKey("websites.id"), nullable=False, index=True)
+    session_id = Column(String(64), nullable=True, index=True)
+    visitor_id = Column(String(64), nullable=True)
+    event_name = Column(String(100), nullable=False)
+    event_data = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    website = relationship("Website", back_populates="events")
+
+
+class Membership(Base):
+    __tablename__ = "memberships"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    plan = Column(String(50), default="free")
+    status = Column(SQLEnum(MembershipStatus), default=MembershipStatus.FREE)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    stripe_subscription_id = Column(String(100), nullable=True)
+
+    user = relationship("User", back_populates="memberships")
