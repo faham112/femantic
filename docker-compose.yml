@@ -18,6 +18,19 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: femantic-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -25,13 +38,17 @@ services:
     container_name: femantic-backend
     environment:
       DATABASE_URL: postgresql://femantic:femantic_secret@db:5432/femantic
+      REDIS_URL: redis://redis:6379/0
       JWT_SECRET: change-this-to-a-long-random-secret-in-production
       JWT_ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
     ports:
       - "8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - ./backend:/app
@@ -55,3 +72,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
