@@ -44,3 +44,8 @@ export const getWebsites = async () => {
   const res = await api.get("/api/websites/");
   return res.data;
 };
+
+export const getAdminOverview = async () => {
+  const res = await api.get("/api/admin/overview");
+  return res.data;
+};
