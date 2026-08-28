@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
 
@@ -15,7 +15,6 @@ class MembershipStatus(str, Enum):
     EXPIRED = "expired"
 
 
-# ---------- Auth ----------
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
@@ -37,7 +36,6 @@ class TokenData(BaseModel):
     role: Optional[str] = None
 
 
-# ---------- User ----------
 class UserOut(BaseModel):
     id: int
     email: EmailStr
@@ -58,7 +56,6 @@ class UserUpdate(BaseModel):
     role: Optional[UserRole] = None
 
 
-# ---------- Website ----------
 class WebsiteCreate(BaseModel):
     name: str
     domain: str
@@ -69,6 +66,7 @@ class WebsiteOut(BaseModel):
     name: str
     domain: str
     api_key: str
+    public_key: Optional[str] = None
     is_active: bool
     created_at: datetime
     owner_id: int
@@ -77,12 +75,24 @@ class WebsiteOut(BaseModel):
         from_attributes = True
 
 
-# ---------- Tracking ----------
 class TrackEvent(BaseModel):
     path: str
+    title: Optional[str] = None
     referrer: Optional[str] = None
     user_agent: Optional[str] = None
     session_id: Optional[str] = None
+    visitor_id: Optional[str] = None
+    language: Optional[str] = None
+    screen_width: Optional[int] = None
+    screen_height: Optional[int] = None
+    device: Optional[str] = None
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    event_type: Optional[str] = "pageview"
+    event_name: Optional[str] = None
+    event_data: Optional[Dict[str, Any]] = None
+    timestamp: Optional[str] = None
 
 
 class PageViewOut(BaseModel):
@@ -93,6 +103,8 @@ class PageViewOut(BaseModel):
     device: Optional[str]
     browser: Optional[str]
     is_bot: bool
+    traffic_score: Optional[float] = None
+    traffic_label: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -102,9 +114,37 @@ class PageViewOut(BaseModel):
 class StatsOverview(BaseModel):
     total_pageviews: int
     unique_sessions: int
-    true_traffic: int          # non-bot
+    true_traffic: int
     bounce_rate: float
     top_pages: List[dict]
     top_referrers: List[dict]
     devices: dict
     countries: List[dict]
+    humans: Optional[int] = None
+    bots: Optional[int] = None
+    suspicious: Optional[int] = None
+
+
+class RealtimeStats(BaseModel):
+    live_visitors: int
+    pageviews_last_5min: int
+    top_pages_live: List[dict]
+    recent_visitors: List[dict]
+
+
+class MembershipOut(BaseModel):
+    id: int
+    user_id: int
+    plan: str
+    status: MembershipStatus
+    started_at: datetime
+    expires_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class MembershipUpdate(BaseModel):
+    plan: Optional[str] = None
+    status: Optional[MembershipStatus] = None
+    expires_at: Optional[datetime] = None
