@@ -11,9 +11,14 @@ log() {
     printf '[deploy-femantic] %s\n' "$*"
 }
 
+echo "========================================"
+echo " Femantic production deployment"
+echo "========================================"
+
 cd "$REPO_DIR"
 
 if [[ "$(git status --porcelain)" != "" ]]; then
+    echo "ERROR: uncommitted changes found; deployment stopped."
     printf 'Refusing to deploy with uncommitted changes in %s\n' "$REPO_DIR" >&2
     exit 1
 fi
@@ -22,6 +27,7 @@ log "Pulling origin/${BRANCH}"
 git pull --ff-only origin "$BRANCH"
 
 if [[ ! -x "$PYTHON" ]]; then
+    echo "ERROR: Python 3.11.9 is not installed."
     printf 'Python 3.11.9 not found at %s\n' "$PYTHON" >&2
     exit 1
 fi
@@ -66,6 +72,13 @@ sudo -n systemctl reload nginx
 log "Running health checks"
 for attempt in {1..15}; do
     if curl --fail --silent http://127.0.0.1:8100/health >/dev/null && curl --fail --silent "$FRONTEND_URL" >/dev/null; then
+        echo ""
+        echo "========================================"
+        echo " Deployment successful"
+        echo " Frontend: http://136.244.78.245/"
+        echo " Admin:    http://136.244.78.245/admin"
+        echo " Backend:  http://127.0.0.1:8100/health"
+        echo "========================================"
         log "Deployment complete: ${FRONTEND_URL}"
         exit 0
     fi
@@ -73,4 +86,5 @@ for attempt in {1..15}; do
 done
 
 printf 'Health checks failed. Inspect: sudo journalctl -u femantic-backend -u femantic-frontend -n 100\n' >&2
+echo "ERROR: deployment health checks failed."
 exit 1
