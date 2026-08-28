@@ -1,0 +1,16 @@
+[Unit]
+Description=Femantic FastAPI backend
+After=network.target postgresql.service redis-server.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=linuxuser
+WorkingDirectory=/var/www/html/femantic/backend
+EnvironmentFile=/var/www/html/femantic/.env
+ExecStart=/var/www/html/femantic/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8100
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

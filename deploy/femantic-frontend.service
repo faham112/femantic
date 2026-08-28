@@ -1,0 +1,16 @@
+[Unit]
+Description=Femantic Next.js frontend
+After=network.target femantic-backend.service
+
+[Service]
+Type=simple
+User=linuxuser
+WorkingDirectory=/var/www/html/femantic/frontend
+Environment=NODE_ENV=production
+Environment=NEXT_PUBLIC_API_URL=
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1 --port 3100
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
