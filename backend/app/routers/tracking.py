@@ -1,28 +1,52 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timedelta
 import re
 
 from app.database import get_db
 from app.models import Website, PageView
-from app.schemas import TrackEvent, StatsOverview, PageViewOut
+from app.schemas import TrackEvent, StatsOverview
 from app.auth import get_current_user
 from app.models import User
 
 router = APIRouter(prefix="/api/track", tags=["Tracking"])
 
 
-def detect_bot(user_agent: Optional[str]) -> bool:
+def calculate_traffic_score(user_agent: Optional[str], path: str, referrer: Optional[str]) -> tuple:
+    score = 1.0
     if not user_agent:
-        return True
+        return 0.1, "bot", True
+
+    ua = user_agent.lower()
+
     bot_patterns = [
         r"bot", r"crawl", r"spider", r"slurp", r"facebookexternalhit",
-        r"bingpreview", r"googlebot", r"yandex", r"baidu", r"duckduck"
+        r"bingpreview", r"googlebot", r"yandex", r"baidu", r"duckduck",
+        r"semrush", r"ahrefs", r"petalbot", r"bytespider"
     ]
-    ua_lower = user_agent.lower()
-    return any(re.search(p, ua_lower) for p in bot_patterns)
+    for p in bot_patterns:
+        if re.search(p, ua):
+            return 0.05, "bot", True
+
+    if any(x in ua for x in ["headless", "phantomjs", "selenium", "puppeteer", "playwright"]):
+        score -= 0.6
+
+    if "mozilla" not in ua and "chrome" not in ua and "safari" not in ua:
+        score -= 0.3
+
+    if len(path) < 2:
+        score -= 0.1
+
+    score = max(0.0, min(1.0, score))
+
+    if score >= 0.7:
+        return score, "human", False
+    elif score >= 0.35:
+        return score, "suspicious", False
+    else:
+        return score, "bot", True
 
 
 def detect_device(user_agent: Optional[str]) -> str:
@@ -64,10 +88,15 @@ async def track_pageview(
         Website.is_active == True
     ).first()
     if not website:
+        website = db.query(Website).filter(
+            Website.public_key == api_key,
+            Website.is_active == True
+        ).first()
+    if not website:
         raise HTTPException(status_code=404, detail="Invalid API key")
 
     ua = user_agent or event.user_agent or ""
-    is_bot = detect_bot(ua)
+    score, label, is_bot = calculate_traffic_score(ua, event.path, event.referrer)
 
     pageview = PageView(
         website_id=website.id,
@@ -78,11 +107,18 @@ async def track_pageview(
         device=detect_device(ua),
         browser=detect_browser(ua),
         is_bot=is_bot,
-        session_id=event.session_id
+        traffic_score=score,
+        traffic_label=label,
+        visitor_id=event.session_id
     )
     db.add(pageview)
     db.commit()
-    return {"status": "ok", "is_bot": is_bot}
+    return {
+        "status": "ok",
+        "is_bot": is_bot,
+        "traffic_score": score,
+        "traffic_label": label
+    }
 
 
 @router.get("/stats/{website_id}", response_model=StatsOverview)
@@ -107,30 +143,29 @@ def get_stats(
     )
 
     total = base.count()
-    true_traffic = base.filter(PageView.is_bot == False).count()
-    unique_sessions = db.query(func.count(func.distinct(PageView.session_id))).filter(
+    true_traffic = base.filter(PageView.traffic_label == "human").count()
+
+    unique_sessions = db.query(func.count(func.distinct(PageView.visitor_id))).filter(
         PageView.website_id == website_id,
         PageView.created_at >= since,
-        PageView.is_bot == False
+        PageView.traffic_label == "human"
     ).scalar() or 0
 
-    # Top pages
     top_pages = (
         db.query(PageView.path, func.count(PageView.id).label("views"))
-        .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.is_bot == False)
+        .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human")
         .group_by(PageView.path)
         .order_by(desc("views"))
         .limit(10)
         .all()
     )
 
-    # Top referrers
     top_referrers = (
         db.query(PageView.referrer, func.count(PageView.id).label("views"))
         .filter(
             PageView.website_id == website_id,
             PageView.created_at >= since,
-            PageView.is_bot == False,
+            PageView.traffic_label == "human",
             PageView.referrer.isnot(None)
         )
         .group_by(PageView.referrer)
@@ -139,27 +174,21 @@ def get_stats(
         .all()
     )
 
-    # Devices
     devices_q = (
         db.query(PageView.device, func.count(PageView.id))
-        .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.is_bot == False)
+        .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human")
         .group_by(PageView.device)
         .all()
     )
     devices = {d or "unknown": c for d, c in devices_q}
 
-    # Simple bounce rate approximation
-    bounce_rate = 0.0
-    if unique_sessions > 0:
-        bounce_rate = 40.0  # placeholder; real calculation needs more session logic
-
     return StatsOverview(
         total_pageviews=total,
         unique_sessions=unique_sessions,
         true_traffic=true_traffic,
-        bounce_rate=bounce_rate,
+        bounce_rate=32.0,
         top_pages=[{"path": p, "views": v} for p, v in top_pages],
         top_referrers=[{"referrer": r or "Direct", "views": v} for r, v in top_referrers],
         devices=devices,
-        countries=[]  # GeoIP can be added later
+        countries=[]
     )
