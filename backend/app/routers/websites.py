@@ -4,9 +4,9 @@ from typing import List
 import secrets
 
 from app.database import get_db
-from app.models import User, Website, MembershipStatus
+from app.models import User, Website, MembershipStatus, UserRole, ClientWebsiteAccess
 from app.schemas import WebsiteCreate, WebsiteOut
-from app.auth import get_current_user
+from app.auth import get_current_user, get_current_pro_or_admin, user_can_access_website
 
 router = APIRouter(prefix="/api/websites", tags=["Websites"])
 
@@ -19,9 +19,9 @@ def generate_api_key() -> str:
 def create_website(
     website_in: WebsiteCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_pro_or_admin)
 ):
-    # Free users limited to 3 websites (example rule)
+    # Free users limited to 3 websites
     if current_user.membership == MembershipStatus.FREE:
         count = db.query(Website).filter(Website.owner_id == current_user.id).count()
         if count >= 3:
@@ -47,6 +47,20 @@ def list_my_websites(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """
+    - Admin / Pro: return websites they own
+    - Client: return only websites granted via invite token
+    """
+    if current_user.role == UserRole.CLIENT:
+        access_rows = db.query(ClientWebsiteAccess).filter(
+            ClientWebsiteAccess.user_id == current_user.id
+        ).all()
+        website_ids = [r.website_id for r in access_rows]
+        if not website_ids:
+            return []
+        return db.query(Website).filter(Website.id.in_(website_ids)).all()
+
+    # Pro / Admin see their own websites
     return db.query(Website).filter(Website.owner_id == current_user.id).all()
 
 
@@ -56,10 +70,9 @@ def get_website(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    website = db.query(Website).filter(
-        Website.id == website_id,
-        Website.owner_id == current_user.id
-    ).first()
+    if not user_can_access_website(db, current_user, website_id):
+        raise HTTPException(status_code=404, detail="Website not found")
+    website = db.query(Website).filter(Website.id == website_id).first()
     if not website:
         raise HTTPException(status_code=404, detail="Website not found")
     return website
@@ -69,7 +82,7 @@ def get_website(
 def delete_website(
     website_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_pro_or_admin)
 ):
     website = db.query(Website).filter(
         Website.id == website_id,
