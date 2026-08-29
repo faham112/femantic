@@ -1,15 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import auth, users, websites, tracking, admin, memberships
+from app.routers import auth, users, websites, tracking, admin, memberships, invites
 from app.websocket import realtime
 
+# Create tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Femantic API",
-    description="Real-time True Traffic Analytics – Multi-user Publytics platform",
-    version="1.1.0"
+    description="Real-time True Traffic Analytics – Multi-user Publytics platform with Invite Tokens",
+    version="1.2.0"
 )
 
 app.add_middleware(
@@ -26,6 +27,7 @@ app.include_router(websites.router)
 app.include_router(tracking.router)
 app.include_router(admin.router)
 app.include_router(memberships.router)
+app.include_router(invites.router)
 app.include_router(realtime.router)
 
 
@@ -35,7 +37,7 @@ def root():
         "message": "Welcome to Femantic API",
         "docs": "/docs",
         "status": "running",
-        "version": "1.1.0"
+        "version": "1.2.0"
     }
 
 
