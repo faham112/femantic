@@ -6,7 +6,8 @@ from enum import Enum
 
 class UserRole(str, Enum):
     ADMIN = "admin"
-    USER = "user"
+    PRO = "pro"
+    CLIENT = "client"
 
 
 class MembershipStatus(str, Enum):
@@ -19,6 +20,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
     full_name: Optional[str] = None
+    invite_token: Optional[str] = None   # When registering via invite link
 
 
 class UserLogin(BaseModel):
@@ -43,6 +45,8 @@ class UserOut(BaseModel):
     role: UserRole
     membership: MembershipStatus
     is_active: bool
+    parent_id: Optional[int] = None
+    brand_name: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -54,6 +58,7 @@ class UserUpdate(BaseModel):
     membership: Optional[MembershipStatus] = None
     is_active: Optional[bool] = None
     role: Optional[UserRole] = None
+    brand_name: Optional[str] = None
 
 
 class WebsiteCreate(BaseModel):
@@ -148,3 +153,42 @@ class MembershipUpdate(BaseModel):
     plan: Optional[str] = None
     status: Optional[MembershipStatus] = None
     expires_at: Optional[datetime] = None
+
+
+# Invite Token Schemas
+
+class InviteTokenCreate(BaseModel):
+    label: Optional[str] = None
+    allowed_website_ids: List[int] = Field(..., min_length=1)
+    allowed_metrics: List[str] = Field(
+        default=["visitors", "pageviews", "utm"],
+        description="Metrics client can see: visitors, pageviews, utm, realtime, devices, countries"
+    )
+    max_uses: int = Field(default=1, ge=1, le=100)
+    expires_in_days: Optional[int] = Field(default=30, ge=1, le=365)
+
+
+class InviteTokenOut(BaseModel):
+    id: int
+    token: str
+    label: Optional[str]
+    allowed_website_ids: List[int]
+    allowed_metrics: List[str]
+    max_uses: int
+    used_count: int
+    expires_at: Optional[datetime]
+    is_active: bool
+    created_at: datetime
+    invite_link: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class InviteTokenPublic(BaseModel):
+    """Public info shown on the invite register page (no sensitive data)."""
+    label: Optional[str]
+    brand_name: Optional[str]
+    allowed_metrics: List[str]
+    is_valid: bool
+    message: Optional[str] = None
