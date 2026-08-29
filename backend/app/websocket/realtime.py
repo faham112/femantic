@@ -1,11 +1,18 @@
-from fastapi import APIRouter, Depends
+"""
+Simple real-time support using Redis pub/sub + Server-Sent Events style.
+For full WebSocket later, this provides the foundation.
+"""
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from sqlalchemy import func
+import asyncio
+import json
 
 from app.database import get_db
 from app.models import PageView, Website
-from app.auth import get_current_user
+from app.auth import get_current_user, user_can_access_website
 from app.models import User
 
 router = APIRouter(prefix="/api/realtime", tags=["Realtime"])
@@ -17,10 +24,10 @@ async def live_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    website = db.query(Website).filter(
-        Website.id == website_id,
-        Website.owner_id == current_user.id
-    ).first()
+    """Return current live snapshot (poll every 5-10s from frontend)"""
+    if not user_can_access_website(db, current_user, website_id):
+        return {"error": "Website not found"}
+    website = db.query(Website).filter(Website.id == website_id).first()
     if not website:
         return {"error": "Website not found"}
 

@@ -8,13 +8,17 @@ import re
 from app.database import get_db
 from app.models import Website, PageView
 from app.schemas import TrackEvent, StatsOverview
-from app.auth import get_current_user
+from app.auth import get_current_user, user_can_access_website
 from app.models import User
 
 router = APIRouter(prefix="/api/track", tags=["Tracking"])
 
 
 def calculate_traffic_score(user_agent: Optional[str], path: str, referrer: Optional[str]) -> tuple:
+    """
+    Traffic Quality Score (0.0 = bot, 1.0 = human)
+    Returns (score, label, is_bot)
+    """
     score = 1.0
     if not user_agent:
         return 0.1, "bot", True
@@ -24,7 +28,7 @@ def calculate_traffic_score(user_agent: Optional[str], path: str, referrer: Opti
     bot_patterns = [
         r"bot", r"crawl", r"spider", r"slurp", r"facebookexternalhit",
         r"bingpreview", r"googlebot", r"yandex", r"baidu", r"duckduck",
-        r"semrush", r"ahrefs", r"petalbot", r"bytespider"
+        r"semrush", r"ahrefs", r"moz\\.com", r"petalbot", r"bytespider"
     ]
     for p in bot_patterns:
         if re.search(p, ua):
@@ -128,10 +132,9 @@ def get_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    website = db.query(Website).filter(
-        Website.id == website_id,
-        Website.owner_id == current_user.id
-    ).first()
+    if not user_can_access_website(db, current_user, website_id):
+        raise HTTPException(status_code=404, detail="Website not found")
+    website = db.query(Website).filter(Website.id == website_id).first()
     if not website:
         raise HTTPException(status_code=404, detail="Website not found")
 
