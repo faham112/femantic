@@ -57,28 +57,6 @@ Website → femantic.js → FastAPI /track → Bot Scoring → PostgreSQL
 
 ---
 
-## Project Structure
-
-```
-femantic/
-├── frontend/               # Next.js (responsive dashboard)
-├── backend/                # FastAPI
-│   ├── app/
-│   │   ├── models.py       # Users, Websites, Sessions, PageViews, Events, Memberships
-│   │   ├── routers/        # auth, users, websites, tracking, admin
-│   │   ├── config.py
-│   │   └── ...
-├── tracker/
-│   └── femantic.js         # Official tracking script
-├── database/
-│   └── schema.sql
-├── docker-compose.yml      # Postgres + Redis + Backend + Frontend
-├── .env.example
-└── README.md
-```
-
----
-
 ## Quick Start
 
 ```bash
@@ -92,7 +70,17 @@ docker-compose up --build
 - Frontend: http://localhost:3000  
 - Backend + Docs: http://localhost:8000/docs  
 
-**First registered user becomes Admin automatically.**
+### Constant Admin credentials
+
+Backend startup seeds / refreshes this Super Admin every time:
+
+| Field    | Value               |
+|----------|---------------------|
+| Email    | `admin@femantic.com` |
+| Password | `Admin@12345`        |
+| Name     | Femantic Admin       |
+
+Override with `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FULL_NAME` in `.env` or `docker-compose.yml`.
 
 ### Tracking Snippet
 
@@ -103,19 +91,6 @@ docker-compose up --build
   defer>
 </script>
 ```
-
----
-
-## Development Phases (Recommended)
-
-1. Foundation (Done) – Next.js + FastAPI + PostgreSQL + Docker + Redis
-2. Auth + Roles (Done)
-3. Website Management (Done)
-4. Tracking Engine ⭐ (Improved – Traffic Quality Score + femantic.js)
-5. Analytics Dashboard
-6. Admin Panel
-7. Femantic Pro + Stripe
-8. Production (Nginx, Cloudflare, SSL, Monitoring)
 
 ---
 
