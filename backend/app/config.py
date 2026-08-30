@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Constant Super Admin (seeded on startup)
+    ADMIN_EMAIL: str = "admin@femantic.com"
+    ADMIN_PASSWORD: str = "Admin@12345"
+    ADMIN_FULL_NAME: str = "Femantic Admin"
+
     # Tracking
     TRACK_RATE_LIMIT: int = 60
     BOT_SCORE_THRESHOLD: float = 0.7

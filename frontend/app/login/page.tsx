@@ -6,10 +6,13 @@ import Cookies from "js-cookie";
 import { login } from "@/lib/api";
 import { BarChart3, Loader2 } from "lucide-react";
 
+const ADMIN_EMAIL = "admin@femantic.com";
+const ADMIN_PASSWORD = "Admin@12345";
+
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(ADMIN_EMAIL);
+  const [password, setPassword] = useState(ADMIN_PASSWORD);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,6 +33,10 @@ export default function LoginPage() {
         </Link>
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl space-y-4">
           <h1 className="text-xl font-bold text-navy-800 text-center">Log in</h1>
+          <div className="bg-sky-50 border border-sky-100 text-[12px] text-navy-700 rounded-lg px-3 py-2 leading-relaxed">
+            <strong>Admin login:</strong> {ADMIN_EMAIL}<br />
+            <strong>Password:</strong> {ADMIN_PASSWORD}
+          </div>
           {error && <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</div>}
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-sky-500" />
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-sky-500" />

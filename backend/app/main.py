@@ -3,9 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers import auth, users, websites, tracking, admin, memberships, invites
 from app.websocket import realtime
+from app.seed import seed_admin
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+seed_admin()
 
 app = FastAPI(
     title="Femantic API",
