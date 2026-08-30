@@ -4,179 +4,145 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import Link from "next/link";
-import {
-  BarChart3, Shield, Zap, Smartphone, Eye, Users, Activity, ArrowRight, CheckCircle2,
-} from "lucide-react";
+import { BarChart3, ArrowRight, Check, Shield, Radio, Globe, Sparkles } from "lucide-react";
 
 export default function HomePage() {
   const router = useRouter();
-
-  useEffect(() => {
-    const token = Cookies.get("token");
-    if (token) router.push("/dashboard");
-  }, [router]);
+  useEffect(() => { if (Cookies.get("token")) router.push("/dashboard"); }, [router]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-white overflow-x-hidden">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-sky-500/20 rounded-full blur-[120px]" />
-        <div className="absolute top-1/2 -left-40 w-[400px] h-[400px] bg-indigo-600/15 rounded-full blur-[100px]" />
-      </div>
-
-      <header className="relative z-50 border-b border-white/5 backdrop-blur-xl bg-slate-950/70 sticky top-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/30">
-              <BarChart3 className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-white text-slate-800 overflow-x-hidden">
+      <header className="absolute inset-x-0 top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-blue-700 flex items-center justify-center">
+              <BarChart3 className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Femantic</span>
-          </div>
+            <span className="text-lg sm:text-xl font-bold text-white tracking-tight">Femantic</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-7 text-sm text-white/90">
+            <a href="#pricing" className="hover:text-white">Pricing</a>
+            <a href="#features" className="hover:text-white">Features</a>
+            <a href="#faq" className="hover:text-white">FAQ</a>
+          </nav>
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white px-3 py-2 transition">Login</Link>
-            <Link href="/register" className="text-sm font-semibold bg-gradient-to-r from-sky-500 to-blue-600 text-white px-4 py-2.5 rounded-xl hover:from-sky-400 hover:to-blue-500 transition shadow-lg shadow-sky-500/25">Get Started Free</Link>
+            <Link href="/login" className="text-sm text-white/90 hover:text-white px-2 py-1.5">Log In</Link>
+            <Link href="/register" className="text-sm font-semibold text-white border border-white/40 rounded-lg px-3 py-1.5 hover:bg-white/10">Sign Up</Link>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10 flex-1">
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-20 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-xs font-medium text-sky-300 mb-8">
-            <Activity className="w-3.5 h-3.5" /> Real-time · True Traffic · Multi-user
-          </div>
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]">
-            Track Real-time.<br />
-            <span className="bg-gradient-to-r from-sky-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent">Track True.</span>
+      <section className="landing-hero relative pt-28 sm:pt-32 pb-16 sm:pb-24 text-white">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h1 className="text-[28px] leading-tight sm:text-5xl lg:text-[56px] font-extrabold tracking-tight">
+            The Google Analytics Alternative<br className="hidden sm:block" /> Built for{" "}
+            <em className="not-italic text-accent">Publishers</em>
           </h1>
-          <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            A new journey – track your traffic from here. Multi-user analytics with admin control, premium membership and fully responsive design.
+          <p className="mt-5 text-sm sm:text-lg text-white/75 max-w-xl mx-auto">
+            Get the most accurate analytics for your website, grow your audience and increase your revenue.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register" className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold rounded-2xl hover:from-sky-400 hover:to-blue-500 transition shadow-xl shadow-sky-500/30">
-              Start Free <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white font-semibold rounded-full px-6 py-3 text-sm">
+              14-days Free Trial <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link href="/login" className="inline-flex items-center justify-center px-8 py-4 bg-white/5 text-white font-semibold rounded-2xl border border-white/10 hover:bg-white/10 transition">Login to Dashboard</Link>
+            <a href="#features" className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 text-white font-semibold rounded-full px-6 py-3 text-sm border border-white/15">
+              <Sparkles className="w-4 h-4" /> Our Features
+            </a>
           </div>
-
-          <div className="mt-16 sm:mt-20 relative mx-auto max-w-4xl">
-            <div className="absolute -inset-1 bg-gradient-to-r from-sky-500/30 via-cyan-400/20 to-blue-600/30 rounded-3xl blur-xl" />
-            <div className="relative bg-slate-900/90 border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-red-400/80" /><div className="w-3 h-3 rounded-full bg-amber-400/80" /><div className="w-3 h-3 rounded-full bg-emerald-400/80" />
-                <span className="ml-3 text-xs text-slate-500 font-mono">femantic.app/dashboard</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[{"label":"Live Visitors","value":"127","Icon":Users},{"label":"Page Views","value":"843","Icon":Eye},{"label":"True Traffic","value":"91%","Icon":Shield},{"label":"Sessions","value":"94","Icon":Activity}].map((s) => (
-                  <div key={s.label} className="bg-slate-800/80 rounded-xl p-3 sm:p-4 border border-white/5">
-                    <div className="flex items-center gap-1.5 text-slate-400 text-[10px] sm:text-xs mb-1"><s.Icon className="w-3 h-3" />{s.label}</div>
-                    <p className="text-xl sm:text-2xl font-bold text-white">{s.value}</p>
-                  </div>
+          <p className="mt-3 text-xs text-white/60 flex items-center justify-center gap-1.5"><Check className="w-3.5 h-3.5" /> No credit card required</p>
+        </div>
+        <div className="mt-12 sm:mt-16 max-w-5xl mx-auto px-4">
+          <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl">
+            <div className="bg-[#f3f5f8] text-slate-800 p-3 sm:p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1 text-[10px] sm:text-xs">
+                {["Users 66.4K", "Sessions 72K", "Pageviews 95K", "Bounce 15.8%", "Duration 01:01"].map((x, i) => (
+                  <div key={x} className={`px-2 py-2 rounded ${i === 0 ? "bg-[#0d4f7a] text-white" : "bg-white border border-slate-200"}`}>{x}</div>
                 ))}
               </div>
-              <div className="mt-4 h-24 sm:h-32 bg-gradient-to-t from-sky-500/10 to-transparent rounded-xl border border-white/5 flex items-end justify-around px-4 pb-2">
-                {[40,65,45,80,55,90,70,85,60,75].map((h,i)=>(
-                  <div key={i} className="w-2 sm:w-3 bg-gradient-to-t from-sky-500 to-cyan-300 rounded-t opacity-80" style={{height:`${h}%`}} />
+              <div className="mt-2 h-20 sm:h-28 bg-white rounded border border-slate-200 overflow-hidden flex items-end gap-1 px-3 pb-2">
+                {[40, 70, 42, 44, 40, 55, 35, 58, 48, 40, 44, 42].map((h, i) => (
+                  <div key={i} className="flex-1 bg-navy-600/30 rounded-t" style={{ height: `${h}%` }} />
                 ))}
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="border-t border-white/5 bg-slate-900/40 py-20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="text-center mb-14">
-              <h2 className="text-2xl sm:text-4xl font-bold">Everything you need</h2>
-              <p className="mt-3 text-slate-400 max-w-xl mx-auto">Built for agencies, marketers and website owners who care about real numbers.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Feature icon={<Zap className="w-6 h-6" />} title="Real-time Traffic" desc="Live pageviews, sessions and true human traffic filtered from bots." />
-              <Feature icon={<Shield className="w-6 h-6" />} title="Admin Power" desc="Only admin manages users, API keys and premium memberships." />
-              <Feature icon={<BarChart3 className="w-6 h-6" />} title="Multi-user" desc="Each user tracks their own websites. Premium unlocks unlimited sites." />
-              <Feature icon={<Smartphone className="w-6 h-6" />} title="Fully Responsive" desc="Perfect on mobile, tablet and desktop. Built mobile-first." />
-            </div>
+      <section id="features" className="py-16 sm:py-24 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-navy-800">GA4-style reports. True traffic.</h2>
+            <p className="mt-3 text-slate-500 text-sm sm:text-base">Users, sessions, pageviews, bounce and realtime — clean publisher UI from 320px up.</p>
           </div>
-        </section>
-
-        <section className="py-20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-2xl sm:text-4xl font-bold leading-tight">Not just bots.<br /><span className="text-sky-400">True traffic scoring.</span></h2>
-                <p className="mt-4 text-slate-400 leading-relaxed">Femantic uses a Traffic Quality Score. See Humans, Suspicious and Bots separately.</p>
-                <ul className="mt-6 space-y-3">
-                  {["Bot & crawler detection","Headless browser signals","Session behaviour scoring","Human / Suspicious / Bot labels"].map((item)=>(
-                    <li key={item} className="flex items-center gap-3 text-slate-300"><CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />{item}</li>
-                  ))}
-                </ul>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {[
+              { icon: Radio, t: "Realtime overview", d: "Active users, pageviews per minute, devices and live paths." },
+              { icon: Shield, t: "True traffic score", d: "Separate humans, suspicious visits and bots." },
+              { icon: Globe, t: "Site + Network", d: "One site or a network. Invite clients with scoped access." },
+              { icon: BarChart3, t: "Acquisition & content", d: "Top pages, referrers, devices and sources." },
+              { icon: Sparkles, t: "2-step activation", d: "Add domain + timezone, then paste the Femantic tag." },
+              { icon: Check, t: "Responsive 320 → XL", d: "Sidebar collapses on phones. Cards stack. Charts scale." },
+            ].map((f) => (
+              <div key={f.t} className="rounded-2xl border border-slate-200 p-5 sm:p-6 hover:border-navy-200 hover:shadow-card transition">
+                <div className="w-10 h-10 rounded-lg bg-navy-50 text-navy-700 flex items-center justify-center mb-3"><f.icon className="w-5 h-5" /></div>
+                <h3 className="font-semibold text-navy-800">{f.t}</h3>
+                <p className="mt-1.5 text-sm text-slate-500 leading-relaxed">{f.d}</p>
               </div>
-              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 sm:p-8 space-y-4">
-                <TrafficRow label="Humans" value={1284} color="bg-emerald-500" pct={85} />
-                <TrafficRow label="Suspicious" value={42} color="bg-amber-500" pct={8} />
-                <TrafficRow label="Bots" value={173} color="bg-rose-500" pct={12} />
-              </div>
-            </div>
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="border-t border-white/5 bg-slate-900/40 py-20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <h2 className="text-2xl sm:text-4xl font-bold">Simple pricing</h2>
-            <p className="mt-3 text-slate-400">Start free. Upgrade when you grow.</p>
-            <div className="mt-12 grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-6 text-left">
-                <h3 className="font-semibold text-lg">Free</h3>
-                <p className="text-3xl font-bold mt-2">$0</p>
-                <ul className="mt-4 space-y-2 text-sm text-slate-400"><li>• 3 websites</li><li>• 7-day retention</li><li>• Basic analytics</li><li>• Realtime visitors</li></ul>
-                <Link href="/register" className="mt-6 block text-center py-2.5 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/5 transition">Get Started</Link>
-              </div>
-              <div className="bg-gradient-to-b from-sky-500/20 to-slate-900/80 border border-sky-500/30 rounded-2xl p-6 text-left relative">
-                <div className="absolute top-3 right-3 text-[10px] font-bold bg-sky-500 text-white px-2 py-0.5 rounded-full">PRO</div>
-                <h3 className="font-semibold text-lg">Femantic Pro</h3>
-                <p className="text-3xl font-bold mt-2">$19<span className="text-base font-normal text-slate-400">/mo</span></p>
-                <ul className="mt-4 space-y-2 text-sm text-slate-300"><li>• Unlimited websites</li><li>• 365-day retention</li><li>• Advanced filters & export</li><li>• Detailed geo + API access</li></ul>
-                <Link href="/register" className="mt-6 block text-center py-2.5 rounded-xl bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 transition">Upgrade to Pro</Link>
-              </div>
-            </div>
+      <section id="pricing" className="py-16 sm:py-24 bg-[#f6f8fb]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-navy-800">Simple pricing</h2>
+          <p className="mt-3 text-slate-500">Start free. Scale when traffic grows.</p>
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-left">
+            <Plan name="Lite" price="$0" tag="Essentials" items={["3 websites", "7-day retention", "Realtime + basic reports", "Bot scoring"]} />
+            <Plan name="Business" price="$19" tag="Most popular" featured items={["20 websites", "1 year retention", "Invite clients", "Hour granularity", "Export & API"]} />
+            <Plan name="Enterprise" price="Talk to us" tag="Unlimited" items={["Unlimited sites & team", "Custom retention", "Networks", "Minute granularity", "SLA"]} />
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="py-20">
-          <div className="max-w-3xl mx-auto px-4 text-center">
-            <h2 className="text-2xl sm:text-4xl font-bold">Ready to track true traffic?</h2>
-            <p className="mt-4 text-slate-400">Join Femantic and see real visitors — not noise.</p>
-            <Link href="/register" className="mt-8 inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold rounded-2xl hover:from-sky-400 hover:to-blue-500 transition shadow-xl shadow-sky-500/30">
-              Create free account <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </section>
-      </main>
+      <section id="faq" className="py-16 bg-white">
+        <div className="max-w-3xl mx-auto px-4">
+          <h2 className="text-2xl font-extrabold text-navy-800 text-center mb-8">FAQ</h2>
+          {[
+            ["Is this a GA4 alternative?", "Yes. Users, sessions, pageviews, bounce and acquisition with a cleaner publisher-first UI."],
+            ["How do I install the tag?", "Activate a site, copy the Femantic script, paste it before the closing body tag."],
+            ["Can agencies invite clients?", "Pro and Admin users generate invite tokens with scoped website access."],
+          ].map(([q, a]) => (
+            <details key={q} className="border-b border-slate-200 py-4">
+              <summary className="font-semibold cursor-pointer text-navy-800">{q}</summary>
+              <p className="mt-2 text-sm text-slate-500">{a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
 
-      <footer className="relative z-10 border-t border-white/5 py-8 text-center text-sm text-slate-500">
-        © {new Date().getFullYear()} Femantic — Track real-time. Track true. Track from here.
+      <footer className="bg-navy-800 text-white/70 py-8 text-center text-sm">
+        © {new Date().getFullYear()} Femantic · Track real-time. Track true.
+        <div className="mt-2 flex justify-center gap-4 text-xs">
+          <Link href="/login" className="hover:text-white">Login</Link>
+          <Link href="/register" className="hover:text-white">Sign up</Link>
+        </div>
       </footer>
     </div>
   );
 }
 
-function Feature({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+function Plan({ name, price, tag, items, featured }: { name: string; price: string; tag: string; items: string[]; featured?: boolean }) {
   return (
-    <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-6 hover:border-sky-500/30 transition group">
-      <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center mb-4 group-hover:bg-sky-500/20 transition">{icon}</div>
-      <h3 className="font-semibold text-white">{title}</h3>
-      <p className="mt-2 text-sm text-slate-400 leading-relaxed">{desc}</p>
-    </div>
-  );
-}
-
-function TrafficRow({ label, value, color, pct }: { label: string; value: number; color: string; pct: number }) {
-  return (
-    <div>
-      <div className="flex justify-between text-sm mb-1.5">
-        <span className="text-slate-300">{label}</span>
-        <span className="font-semibold text-white">{value.toLocaleString()}</span>
-      </div>
-      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
-      </div>
+    <div className={`rounded-2xl p-6 border ${featured ? "bg-navy-800 text-white border-navy-800 shadow-xl" : "bg-white border-slate-200"}`}>
+      <div className={`text-[11px] font-bold uppercase tracking-wide ${featured ? "text-accent" : "text-slate-400"}`}>{tag}</div>
+      <h3 className="text-xl font-bold mt-1">{name}</h3>
+      <p className="text-3xl font-extrabold mt-3">{price}<span className={`text-sm font-normal ${featured ? "text-white/60" : "text-slate-400"}`}>{price.startsWith("$") ? "/mo" : ""}</span></p>
+      <ul className="mt-5 space-y-2 text-sm">
+        {items.map((i) => <li key={i} className="flex gap-2"><Check className={`w-4 h-4 shrink-0 ${featured ? "text-accent" : "text-navy-600"}`} />{i}</li>)}
+      </ul>
+      <Link href="/register" className={`mt-6 block text-center rounded-full py-2.5 text-sm font-semibold ${featured ? "bg-accent text-white" : "bg-navy-800 text-white"}`}>Get started</Link>
     </div>
   );
 }
