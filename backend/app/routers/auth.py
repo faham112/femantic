@@ -8,7 +8,7 @@ from app.models import User, UserRole, MembershipStatus, InviteToken, ClientWebs
 from app.schemas import UserCreate, UserOut, Token
 from app.auth import (
     get_password_hash, verify_password, create_access_token,
-    get_user_by_email, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
+    get_user_by_email, normalize_email, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -16,7 +16,8 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    existing = get_user_by_email(db, user_in.email)
+    normalized_email = normalize_email(user_in.email)
+    existing = get_user_by_email(db, normalized_email)
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -37,7 +38,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
         # Create CLIENT user
         user = User(
-            email=user_in.email,
+            email=normalized_email,
             hashed_password=get_password_hash(user_in.password),
             full_name=user_in.full_name,
             role=UserRole.CLIENT,
@@ -69,7 +70,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     role = UserRole.ADMIN if is_first else UserRole.PRO
 
     user = User(
-        email=user_in.email,
+        email=normalized_email,
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
         role=role,
@@ -83,7 +84,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = get_user_by_email(db, form_data.username)
+    normalized_email = normalize_email(form_data.username)
+    user = get_user_by_email(db, normalized_email)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

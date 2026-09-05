@@ -33,9 +33,19 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=True)
-    role = Column(SQLEnum(UserRole), default=UserRole.PRO, nullable=False)
-    status = Column(SQLEnum(UserStatus), default=UserStatus.ACTIVE)
-    membership = Column(SQLEnum(MembershipStatus), default=MembershipStatus.FREE)
+    role = Column(
+        SQLEnum(UserRole, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        default=UserRole.PRO,
+        nullable=False,
+    )
+    status = Column(
+        SQLEnum(UserStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        default=UserStatus.ACTIVE,
+    )
+    membership = Column(
+        SQLEnum(MembershipStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        default=MembershipStatus.FREE,
+    )
     is_active = Column(Boolean, default=True)
     # For CLIENT users: who invited them (the Super/Pro user)
     parent_id = Column(Integer, ForeignKey("users.id"), nullable=True)
