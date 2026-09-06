@@ -6,6 +6,7 @@ import Link from "next/link";
 import api, { getMe } from "@/lib/api";
 import { Loader2, Check, Copy } from "lucide-react";
 
+const PUBLIC_ORIGIN = "https://analytics.globalcareerhub.org";
 const ZONES = ["UTC", "Asia/Karachi (UTC+05:00)", "Asia/Dubai (UTC+04:00)", "Europe/Rome (UTC+02:00)", "Europe/London (UTC+00:00)", "America/New_York (UTC-04:00)"];
 
 function Wizard() {
@@ -22,8 +23,10 @@ function Wizard() {
     if (!Cookies.get("token")) router.push("/login");
     getMe().catch(() => router.push("/login"));
   }, [router]);
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const snippet = site ? `<script defer data-site="${site.api_key}" src="${origin}/tracker/femantic.js"></script>` : "";
+  const origin = typeof window !== "undefined" ? window.location.origin : PUBLIC_ORIGIN;
+  const snippet = site
+    ? `<script defer data-site="${site.api_key}" src="${origin}/tracker/femantic.js"></script>`
+    : "";
   const create = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError("");
     try {

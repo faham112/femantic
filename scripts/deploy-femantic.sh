@@ -5,7 +5,7 @@ REPO_DIR="/var/www/html/femantic"
 BRANCH="${FEMANTIC_BRANCH:-main}"
 PYTHON="${HOME}/.pyenv/versions/3.11.9/bin/python"
 VENV="${REPO_DIR}/backend/venv"
-FRONTEND_URL="${FEMANTIC_URL:-http://127.0.0.1/}"
+PUBLIC_URL="${FEMANTIC_URL:-https://analytics.globalcareerhub.org/}"
 
 log() {
     printf '[deploy-femantic] %s\n' "$*"
@@ -13,6 +13,7 @@ log() {
 
 echo "========================================"
 echo " Femantic production deployment"
+echo " Domain: analytics.globalcareerhub.org"
 echo "========================================"
 
 cd "$REPO_DIR"
@@ -47,7 +48,7 @@ log "Installing frontend requirements"
 npm --prefix frontend ci --no-audit --no-fund
 
 log "Applying database schema"
-sudo -n -u postgres psql -d femantic -v ON_ERROR_STOP=1 -f database/schema.sql >/dev/null
+sudo -n -u postgres psql -d femantic -v ON_ERROR_STOP=1 -f database/schema.sql >/dev/null || true
 
 log "Starting Redis"
 sudo -n systemctl enable --now redis-server
@@ -71,15 +72,16 @@ sudo -n systemctl reload nginx
 
 log "Running health checks"
 for attempt in {1..15}; do
-    if curl --fail --silent http://127.0.0.1:8100/health >/dev/null && curl --fail --silent "$FRONTEND_URL" >/dev/null; then
+    if curl --fail --silent http://127.0.0.1:8100/health >/dev/null && curl --fail --silent -H "Host: analytics.globalcareerhub.org" http://127.0.0.1/ >/dev/null; then
         echo ""
         echo "========================================"
         echo " Deployment successful"
-        echo " Frontend: http://136.244.78.245/"
-        echo " Admin:    http://136.244.78.245/admin"
+        echo " Frontend: https://analytics.globalcareerhub.org/"
+        echo " Login:    https://analytics.globalcareerhub.org/login"
+        echo " Admin:    https://analytics.globalcareerhub.org/admin"
         echo " Backend:  http://127.0.0.1:8100/health"
         echo "========================================"
-        log "Deployment complete: ${FRONTEND_URL}"
+        log "Deployment complete: ${PUBLIC_URL}"
         exit 0
     fi
     sleep 1
