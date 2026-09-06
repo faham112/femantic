@@ -1,33 +1,40 @@
 # Femantic – Real-Time True Traffic Analytics
 
-Publytics / GA4-style analytics: landing page, dashboard, realtime, site activation, invites, admin.
+Production domain: **https://analytics.globalcareerhub.org**
 
-## Run locally
+## Production
+
+DNS A record:
+
+```
+analytics.globalcareerhub.org  →  VPS IP
+```
+
+Then on the VPS:
 
 ```bash
-git clone https://github.com/faham112/femantic.git
-cd femantic
+cd /var/www/html/femantic
+git pull origin main
+sudo bash scripts/deploy-femantic.sh
+sudo certbot --nginx -d analytics.globalcareerhub.org
+```
+
+- App: https://analytics.globalcareerhub.org
+- Login: https://analytics.globalcareerhub.org/login
+- Admin: `admin@femantic.com` / `Admin@12345`
+- Tracker: https://analytics.globalcareerhub.org/tracker/femantic.js
+
+### Install tracker
+
+```html
+<script defer
+  data-site="YOUR_API_KEY"
+  src="https://analytics.globalcareerhub.org/tracker/femantic.js"></script>
+```
+
+## Local Docker
+
+```bash
 cp .env.example .env
 docker-compose up --build
 ```
-
-- Frontend: http://localhost:3000
-- API docs: http://localhost:8000/docs
-- Tracker: http://localhost:8000/tracker/femantic.js
-
-### Admin login (seeded on backend start)
-
-- Email: `admin@femantic.com`
-- Password: `Admin@12345`
-
-Startup also seeds a demo site `demo.femantic.dev` with sample pageviews so the dashboard is not empty.
-
-### Install tracker on a site
-
-```html
-<script defer data-site="YOUR_API_OR_PUBLIC_KEY" data-api="http://localhost:8000" src="http://localhost:8000/tracker/femantic.js"></script>
-```
-
-## Stack
-
-Next.js 14 + FastAPI + PostgreSQL + Redis + Docker.
