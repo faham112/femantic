@@ -1,6 +1,6 @@
 "use client";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import Link from "next/link";
 import api, { getMe } from "@/lib/api";
@@ -10,6 +10,8 @@ import { Loader2, ArrowRight } from "lucide-react";
 
 function DashboardInner() {
   const router = useRouter();
+  const params = useSearchParams();
+  const websiteId = params.get("id");
   const [user, setUser] = useState<any>(null);
   const [websites, setWebsites] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -24,18 +26,18 @@ function DashboardInner() {
       try {
         const [me, sites] = await Promise.all([getMe(), api.get("/api/websites/")]);
         setUser(me); setWebsites(sites.data);
-        const first = sites.data[0];
-        if (first) {
+        const id = websiteId || sites.data[0]?.id;
+        if (id) {
           const [s, l] = await Promise.all([
-            api.get(`/api/track/stats/${first.id}?days=${days}`),
-            api.get(`/api/realtime/live/${first.id}`).catch(() => ({ data: null })),
+            api.get(`/api/track/stats/${id}?days=${days}`),
+            api.get(`/api/realtime/live/${id}`).catch(() => ({ data: null })),
           ]);
           setStats(s.data); setLive(l.data);
         }
       } catch { Cookies.remove("token"); router.push("/login"); }
       finally { setLoading(false); }
     })();
-  }, [router, days]);
+  }, [router, days, websiteId]);
 
   const users = stats?.true_traffic ?? 0;
   const sessions = stats?.unique_sessions ?? 0;
@@ -56,6 +58,7 @@ function DashboardInner() {
       { label: "Tablet", value: d.tablet || 0, color: "#a855f7" },
     ];
   }, [stats]);
+  const activeId = websiteId || websites[0]?.id;
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-7 h-7 animate-spin text-navy-600" /></div>;
 
@@ -120,8 +123,8 @@ function DashboardInner() {
                   <div key={p.path} className="flex justify-between text-sm py-1 border-b border-white/10"><span className="truncate pr-2">{p.path}</span><span>{p.views}</span></div>
                 ))}
               </div>
-              {websites[0] && (
-                <Link href={`/dashboard/realtime?id=${websites[0].id}`} className="mt-4 w-full inline-flex items-center justify-center gap-1 bg-white/15 hover:bg-white/25 rounded-full py-2 text-sm font-medium">
+              {activeId && (
+                <Link href={`/dashboard/realtime?id=${activeId}`} className="mt-4 w-full inline-flex items-center justify-center gap-1 bg-white/15 hover:bg-white/25 rounded-full py-2 text-sm font-medium">
                   Real Time Data <ArrowRight className="w-4 h-4" />
                 </Link>
               )}
