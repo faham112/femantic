@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Femantic Analytics",
+    "slug": "femantic-analytics",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "femantic",
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.femantic.analytics",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#07131f"
+      }
+    },
+    "extra": {
+      "apiUrl": "https://analytics.globalcareerhub.org"
+    }
+  }
+}

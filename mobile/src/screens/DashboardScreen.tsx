@@ -1,0 +1,14 @@
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { useAuth } from "../AuthContext";
+import { getStats, getWebsites, Stats, Website } from "../api";
+import { colors, ui } from "../theme";
+
+function Metric({ label, value, tone = colors.accent }: { label: string; value: string | number; tone?: string }) { return <View style={[ui.panel, { flex: 1, minWidth: "46%", marginBottom: 10 }]}><Text style={{ color: colors.muted, fontSize: 12, fontWeight: "700" }}>{label}</Text><Text style={{ color: tone, fontSize: 26, fontWeight: "900", marginTop: 8 }}>{value}</Text></View>; }
+export function DashboardScreen() {
+  const { token, user } = useAuth(); const [sites, setSites] = useState<Website[]>([]); const [stats, setStats] = useState<Stats | null>(null); const [refreshing, setRefreshing] = useState(false);
+  async function load() { if (!token) return; const nextSites = await getWebsites(token); setSites(nextSites); if (nextSites[0]) setStats(await getStats(token, nextSites[0].id, 7)); }
+  useEffect(() => { load().catch(() => undefined); }, [token]);
+  async function refresh() { setRefreshing(true); try { await load(); } finally { setRefreshing(false); } }
+  return <ScrollView style={ui.screen} contentContainerStyle={ui.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}><Text style={ui.eyebrow}>OVERVIEW / 7 DAYS</Text><Text style={ui.title}>Good to see you{user?.full_name ? `, ${user.full_name.split(" ")[0]}` : ""}.</Text><Text style={ui.subtitle}>A quick read on the traffic that matters.</Text><View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 24 }}><Metric label="PAGEVIEWS" value={stats?.total_pageviews ?? "—"} /><Metric label="TRUE TRAFFIC" value={stats?.true_traffic ?? "—"} tone={colors.green} /><Metric label="SESSIONS" value={stats?.unique_sessions ?? "—"} /><Metric label="BOUNCE RATE" value={stats ? `${stats.bounce_rate}%` : "—"} tone={colors.orange} /></View><View style={[ui.panel, { marginTop: 10 }]}><Text style={{ color: colors.text, fontSize: 17, fontWeight: "900" }}>Your sites</Text><Text style={ui.subtitle}>{sites.length ? `${sites.length} connected website${sites.length === 1 ? "" : "s"}` : "Connect a website from the Sites tab."}</Text>{sites.slice(0, 3).map((site) => <View key={site.id} style={{ borderTopColor: colors.line, borderTopWidth: 1, marginTop: 14, paddingTop: 13, flexDirection: "row", justifyContent: "space-between" }}><Text style={{ color: colors.text, fontWeight: "800" }}>{site.name}</Text><Text style={{ color: colors.muted }}>{site.domain}</Text></View>)}</View>{!stats && <ActivityIndicator color={colors.accent} style={{ marginTop: 25 }} />}</ScrollView>;
+}

@@ -1,0 +1,41 @@
+name: Femantic Mobile APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-apk.yml"
+
+jobs:
+  build-preview-apk:
+    name: Build Android preview APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build APK with EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: eas build --platform android --profile preview --non-interactive --wait
+      - name: Download APK
+        run: eas build:download --platform android --profile preview --latest --output femantic-preview.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: femantic-preview-apk
+          path: mobile/femantic-preview.apk
+          retention-days: 14
