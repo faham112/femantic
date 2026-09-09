@@ -79,6 +79,23 @@ def detect_browser(user_agent: Optional[str]) -> str:
     return "Other"
 
 
+def detect_os(user_agent: Optional[str]) -> str:
+    if not user_agent:
+        return "unknown"
+    ua = user_agent.lower()
+    if "android" in ua:
+        return "Android"
+    if "iphone" in ua or "ipad" in ua or "ios" in ua:
+        return "iOS"
+    if "mac os" in ua or "macintosh" in ua:
+        return "macOS"
+    if "windows" in ua:
+        return "Windows"
+    if "linux" in ua:
+        return "Linux"
+    return "Other"
+
+
 def _site_by_key(db: Session, api_key: str):
     website = db.query(Website).filter(Website.api_key == api_key, Website.is_active == True).first()
     if not website:
@@ -131,6 +148,7 @@ async def track_pageview(
         country=country,
         device=event.device or detect_device(ua),
         browser=detect_browser(ua),
+        os=detect_os(ua),
         language=event.language,
         screen_width=event.screen_width,
         screen_height=event.screen_height,
@@ -327,6 +345,84 @@ def get_series(
         return out
 
     return {"current": fill(start, days), "previous": fill(prev_start, days), "days": days}
+
+
+DIMS = {
+    "path": PageView.path,
+    "content": PageView.path,
+    "referrer": PageView.referrer,
+    "country": PageView.country,
+    "device": PageView.device,
+    "browser": PageView.browser,
+    "os": PageView.os,
+    "utm_source": PageView.utm_source,
+    "utm_medium": PageView.utm_medium,
+    "utm_campaign": PageView.utm_campaign,
+    "source_medium": PageView.utm_medium,
+    "traffic": PageView.traffic_label,
+    "hostname": PageView.referrer,
+}
+
+
+@router.get("/breakdown/{website_id}")
+def breakdown(
+    website_id: int,
+    dim: str = "path",
+    days: int = 14,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not user_can_access_website(db, current_user, website_id):
+        raise HTTPException(status_code=404, detail="Website not found")
+    days = max(1, min(days, 90))
+    since = datetime.utcnow() - timedelta(days=days)
+
+    if dim in ("entry", "exit"):
+        order = func.min(PageView.created_at) if dim == "entry" else func.max(PageView.created_at)
+        firsts = (
+            db.query(PageView.visitor_id, PageView.path, order.label("ts"))
+            .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human", PageView.visitor_id.isnot(None))
+            .group_by(PageView.visitor_id, PageView.path)
+            .subquery()
+        )
+        # simplify: first/last path per visitor via window-less group
+        visitors = (
+            db.query(PageView.visitor_id, func.min(PageView.id) if dim == "entry" else func.max(PageView.id))
+            .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human", PageView.visitor_id.isnot(None))
+            .group_by(PageView.visitor_id)
+            .all()
+        )
+        ids = [i for _, i in visitors if i]
+        rows = []
+        if ids:
+            counts = (
+                db.query(PageView.path, func.count(PageView.id).label("views"))
+                .filter(PageView.id.in_(ids))
+                .group_by(PageView.path)
+                .order_by(desc("views"))
+                .limit(50)
+                .all()
+            )
+            rows = counts
+        total = sum(v for _, v in rows) or 1
+        return {"dim": dim, "rows": [{"label": p or "/", "views": v, "pct": round(v * 100 / total, 1)} for p, v in rows]}
+
+    col = DIMS.get(dim, PageView.path)
+    q = db.query(col, func.count(PageView.id).label("views")).filter(
+        PageView.website_id == website_id,
+        PageView.created_at >= since,
+    )
+    if dim != "traffic":
+        q = q.filter(PageView.traffic_label == "human")
+    rows = q.group_by(col).order_by(desc("views")).limit(50).all()
+    total = sum(v for _, v in rows) or 1
+    out = []
+    for label, views in rows:
+        name = label or ("Direct" if dim in ("referrer", "hostname") else "(not set)")
+        if dim == "source_medium":
+            name = label or "(none)"
+        out.append({"label": str(name), "views": views, "pct": round(views * 100 / total, 1)})
+    return {"dim": dim, "rows": out}
 
 
 @router.get("/events/{website_id}")
