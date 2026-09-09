@@ -2,8 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Cookies from "js-cookie";
-import { register, login } from "@/lib/api";
+import { register, login, setToken } from "@/lib/api";
 import { BarChart3, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
@@ -18,7 +17,7 @@ export default function RegisterPage() {
     try {
       await register(email, password, fullName || undefined);
       const data = await login(email, password);
-      Cookies.set("token", data.access_token, { expires: 1 });
+      setToken(data.access_token);
       router.push("/dashboard/sites/new");
     } catch (err: any) { setError(err.response?.data?.detail || "Registration failed"); }
     finally { setLoading(false); }
@@ -32,7 +31,6 @@ export default function RegisterPage() {
         </Link>
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl space-y-4">
           <h1 className="text-xl font-bold text-navy-800 text-center">Start free trial</h1>
-          <p className="text-center text-xs text-slate-500 -mt-2">No credit card · first user becomes Admin</p>
           {error && <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</div>}
           <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-sky-500" />
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-sky-500" />

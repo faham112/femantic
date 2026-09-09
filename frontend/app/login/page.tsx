@@ -2,8 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Cookies from "js-cookie";
-import { login } from "@/lib/api";
+import { login, setToken } from "@/lib/api";
 import { BarChart3, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
@@ -16,7 +15,7 @@ export default function LoginPage() {
     e.preventDefault(); setError(""); setLoading(true);
     try {
       const data = await login(email, password);
-      Cookies.set("token", data.access_token, { expires: 1, sameSite: "lax" });
+      setToken(data.access_token);
       router.push("/dashboard");
     } catch (err: any) { setError(err.response?.data?.detail || "Login failed"); }
     finally { setLoading(false); }
