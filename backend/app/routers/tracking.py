@@ -12,6 +12,7 @@ from app.models import Website, PageView, User, Event
 from app.schemas import TrackEvent, StatsOverview
 from app.auth import get_current_user, user_can_access_website
 from app.config import settings
+from app.geo import country_from_request
 
 router = APIRouter(prefix="/api/track", tags=["Tracking"])
 
@@ -118,9 +119,7 @@ async def track_pageview(
 
     ua = user_agent or event.user_agent or ""
     score, label, is_bot = calculate_traffic_score(ua, event.path, event.referrer)
-    country = request.headers.get("CF-IPCountry") or request.headers.get("X-Country") or None
-    if country in (None, "XX", "T1"):
-        country = None
+    country = country_from_request(request.headers, event.timezone)
 
     pageview = PageView(
         website_id=website.id,
@@ -129,7 +128,7 @@ async def track_pageview(
         referrer=event.referrer[:512] if event.referrer else None,
         user_agent=ua[:1000] if ua else None,
         ip_address=ip[:45] if ip else None,
-        country=country[:100] if country else None,
+        country=country,
         device=event.device or detect_device(ua),
         browser=detect_browser(ua),
         language=event.language,
@@ -150,13 +149,12 @@ async def track_pageview(
 
 
 def _period_stats(db: Session, website_id: int, since: datetime, until: datetime):
-    q = db.query(PageView).filter(
+    views = db.query(PageView).filter(
         PageView.website_id == website_id,
         PageView.created_at >= since,
         PageView.created_at < until,
         PageView.traffic_label == "human",
-    )
-    views = q.count()
+    ).count()
     users = (
         db.query(func.count(func.distinct(PageView.visitor_id)))
         .filter(
@@ -183,12 +181,12 @@ def _period_stats(db: Session, website_id: int, since: datetime, until: datetime
             .count()
         )
         bounce = round((singles / users) * 100, 1)
+
     spans = (
         db.query(
             PageView.visitor_id,
             func.min(PageView.created_at),
             func.max(PageView.created_at),
-            func.count(PageView.id),
         )
         .filter(
             PageView.website_id == website_id,
@@ -200,10 +198,29 @@ def _period_stats(db: Session, website_id: int, since: datetime, until: datetime
         .group_by(PageView.visitor_id)
         .all()
     )
+    hb_rows = (
+        db.query(Event.visitor_id, func.max(Event.created_at))
+        .filter(
+            Event.website_id == website_id,
+            Event.event_name == "heartbeat",
+            Event.created_at >= since,
+            Event.created_at < until,
+            Event.visitor_id.isnot(None),
+        )
+        .group_by(Event.visitor_id)
+        .all()
+    )
+    hb_last = {vid: ts for vid, ts in hb_rows}
     durations = []
-    for _vid, mn, mx, cnt in spans:
-        if mn and mx and cnt > 1:
-            durations.append(max(0, int((mx - mn).total_seconds())))
+    for vid, mn, mx in spans:
+        last = mx
+        extra = hb_last.get(vid)
+        if extra and (last is None or extra > last):
+            last = extra
+        if mn and last:
+            sec = int((last - mn).total_seconds())
+            if sec > 0:
+                durations.append(min(sec, 8 * 3600))
     avg_dur = int(sum(durations) / len(durations)) if durations else 0
     return views, users, bounce, avg_dur
 
@@ -228,7 +245,6 @@ def get_stats(
 
     views, users, bounce, avg_dur = _period_stats(db, website_id, since, until)
     p_views, p_users, p_bounce, _ = _period_stats(db, website_id, prev_since, since)
-    total_all = db.query(PageView).filter(PageView.website_id == website_id, PageView.created_at >= since).count()
 
     top_pages = (
         db.query(PageView.path, func.count(PageView.id).label("views"))
