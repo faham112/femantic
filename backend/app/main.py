@@ -11,20 +11,24 @@ from app.config import settings
 Base.metadata.create_all(bind=engine)
 seed_admin()
 
+docs = "/docs" if settings.DEBUG else None
 app = FastAPI(
     title="Femantic API",
-    description="Real-time True Traffic Analytics – Multi-user Publytics platform with Invite Tokens",
-    version="1.3.0",
+    description="Real-time True Traffic Analytics",
+    version="1.4.0",
+    docs_url=docs,
+    redoc_url=docs and "/redoc",
+    openapi_url="/openapi.json" if settings.DEBUG else None,
 )
 
-origins = [o.strip() for o in (settings.CORS_ORIGINS or "*").split(",") if o.strip()]
-allow_all = "*" in origins
+origins = [o.strip() for o in (settings.CORS_ORIGINS or "").split(",") if o.strip()]
+allow_all = "*" in origins or not origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if allow_all else origins,
     allow_credentials=not allow_all,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(auth.router)
@@ -40,11 +44,12 @@ TRACKER_CANDIDATES = [
     Path(__file__).resolve().parent.parent / "static" / "femantic.js",
     Path(__file__).resolve().parents[2] / "tracker" / "femantic.js",
     Path("/app/static/femantic.js"),
+    Path("/var/www/html/femantic/tracker/femantic.js"),
     Path("/var/www/femantic/tracker/femantic.js"),
 ]
 
 
-def _tracker_path() -> Path | None:
+def _tracker_path():
     for p in TRACKER_CANDIDATES:
         if p.exists():
             return p
@@ -53,7 +58,7 @@ def _tracker_path() -> Path | None:
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to Femantic API", "docs": "/docs", "status": "running", "version": "1.3.0"}
+    return {"message": "Femantic API", "status": "running", "version": "1.4.0"}
 
 
 @app.get("/health")

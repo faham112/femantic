@@ -3,8 +3,8 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     APP_NAME: str = "Femantic"
-    APP_VERSION: str = "1.3.0"
-    DEBUG: bool = True
+    APP_VERSION: str = "1.4.0"
+    DEBUG: bool = False
     APP_PUBLIC_URL: str = "https://analytics.globalcareerhub.org"
 
     DATABASE_URL: str = "postgresql://femantic:femantic_secret@localhost:5432/femantic"
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     TRACK_RATE_LIMIT: int = 60
     BOT_SCORE_THRESHOLD: float = 0.7
 
-    CORS_ORIGINS: str = "https://analytics.globalcareerhub.org,http://analytics.globalcareerhub.org,http://localhost:3000"
+    CORS_ORIGINS: str = "https://analytics.globalcareerhub.org"
 
     class Config:
         env_file = ".env"
