@@ -1,14 +1,31 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import Link from "next/link";
-import { BarChart3, ArrowRight, Check, Shield, Radio, Globe, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { BarChart3, ArrowRight, Check, Shield, Radio, Globe, Sparkles, LogOut, LayoutDashboard } from "lucide-react";
+import { getMe } from "@/lib/api";
 
 export default function HomePage() {
   const router = useRouter();
-  useEffect(() => { if (Cookies.get("token")) router.push("/dashboard"); }, [router]);
+  const [user, setUser] = useState<any>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (!token) { setReady(true); return; }
+    getMe()
+      .then((me) => setUser(me))
+      .catch(() => Cookies.remove("token"))
+      .finally(() => setReady(true));
+  }, []);
+
+  const logout = () => {
+    Cookies.remove("token");
+    setUser(null);
+    router.refresh();
+  };
 
   return (
     <div className="min-h-screen bg-white text-slate-800 overflow-x-hidden">
@@ -26,8 +43,22 @@ export default function HomePage() {
             <a href="#faq" className="hover:text-white">FAQ</a>
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/login" className="text-sm text-white/90 hover:text-white px-2 py-1.5">Log In</Link>
-            <Link href="/register" className="text-sm font-semibold text-white border border-white/40 rounded-lg px-3 py-1.5 hover:bg-white/10">Sign Up</Link>
+            {ready && user ? (
+              <>
+                <span className="hidden sm:inline text-xs text-white/70 truncate max-w-[140px]">{user.full_name || user.email}</span>
+                <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5">
+                  <LayoutDashboard className="w-4 h-4" /> Dashboard
+                </Link>
+                <button onClick={logout} className="text-sm text-white/80 hover:text-white px-2 py-1.5 inline-flex items-center gap-1">
+                  <LogOut className="w-4 h-4" /> Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm text-white/90 hover:text-white px-2 py-1.5">Log In</Link>
+                <Link href="/register" className="text-sm font-semibold text-white border border-white/40 rounded-lg px-3 py-1.5 hover:bg-white/10">Sign Up</Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -42,14 +73,20 @@ export default function HomePage() {
             Get the most accurate analytics for your website, grow your audience and increase your revenue.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white font-semibold rounded-full px-6 py-3 text-sm">
-              14-days Free Trial <ArrowRight className="w-4 h-4" />
-            </Link>
+            {user ? (
+              <Link href="/dashboard" className="inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white font-semibold rounded-full px-6 py-3 text-sm">
+                Open dashboard <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white font-semibold rounded-full px-6 py-3 text-sm">
+                14-days Free Trial <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
             <a href="#features" className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 text-white font-semibold rounded-full px-6 py-3 text-sm border border-white/15">
               <Sparkles className="w-4 h-4" /> Our Features
             </a>
           </div>
-          <p className="mt-3 text-xs text-white/60 flex items-center justify-center gap-1.5"><Check className="w-3.5 h-3.5" /> No credit card required</p>
+          {!user && <p className="mt-3 text-xs text-white/60 flex items-center justify-center gap-1.5"><Check className="w-3.5 h-3.5" /> No credit card required</p>}
         </div>
         <div className="mt-12 sm:mt-16 max-w-5xl mx-auto px-4">
           <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 overflow-hidden shadow-2xl">
@@ -99,9 +136,9 @@ export default function HomePage() {
           <h2 className="text-2xl sm:text-4xl font-extrabold text-navy-800">Simple pricing</h2>
           <p className="mt-3 text-slate-500">Start free. Scale when traffic grows.</p>
           <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-left">
-            <Plan name="Lite" price="$0" tag="Essentials" items={["3 websites", "7-day retention", "Realtime + basic reports", "Bot scoring"]} />
-            <Plan name="Business" price="$19" tag="Most popular" featured items={["20 websites", "1 year retention", "Invite clients", "Hour granularity", "Export & API"]} />
-            <Plan name="Enterprise" price="Talk to us" tag="Unlimited" items={["Unlimited sites & team", "Custom retention", "Networks", "Minute granularity", "SLA"]} />
+            <Plan name="Lite" price="$0" tag="Essentials" loggedIn={!!user} items={["3 websites", "7-day retention", "Realtime + basic reports", "Bot scoring"]} />
+            <Plan name="Business" price="$19" tag="Most popular" featured loggedIn={!!user} items={["20 websites", "1 year retention", "Invite clients", "Hour granularity", "Export & API"]} />
+            <Plan name="Enterprise" price="Talk to us" tag="Unlimited" loggedIn={!!user} items={["Unlimited sites & team", "Custom retention", "Networks", "Minute granularity", "SLA"]} />
           </div>
         </div>
       </section>
@@ -125,15 +162,24 @@ export default function HomePage() {
       <footer className="bg-navy-800 text-white/70 py-8 text-center text-sm">
         © {new Date().getFullYear()} Femantic · Track real-time. Track true.
         <div className="mt-2 flex justify-center gap-4 text-xs">
-          <Link href="/login" className="hover:text-white">Login</Link>
-          <Link href="/register" className="hover:text-white">Sign up</Link>
+          {user ? (
+            <>
+              <Link href="/dashboard" className="hover:text-white">Dashboard</Link>
+              <button onClick={logout} className="hover:text-white">Logout</button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="hover:text-white">Login</Link>
+              <Link href="/register" className="hover:text-white">Sign up</Link>
+            </>
+          )}
         </div>
       </footer>
     </div>
   );
 }
 
-function Plan({ name, price, tag, items, featured }: { name: string; price: string; tag: string; items: string[]; featured?: boolean }) {
+function Plan({ name, price, tag, items, featured, loggedIn }: { name: string; price: string; tag: string; items: string[]; featured?: boolean; loggedIn?: boolean }) {
   return (
     <div className={`rounded-2xl p-6 border ${featured ? "bg-navy-800 text-white border-navy-800 shadow-xl" : "bg-white border-slate-200"}`}>
       <div className={`text-[11px] font-bold uppercase tracking-wide ${featured ? "text-accent" : "text-slate-400"}`}>{tag}</div>
@@ -142,7 +188,9 @@ function Plan({ name, price, tag, items, featured }: { name: string; price: stri
       <ul className="mt-5 space-y-2 text-sm">
         {items.map((i) => <li key={i} className="flex gap-2"><Check className={`w-4 h-4 shrink-0 ${featured ? "text-accent" : "text-navy-600"}`} />{i}</li>)}
       </ul>
-      <Link href="/register" className={`mt-6 block text-center rounded-full py-2.5 text-sm font-semibold ${featured ? "bg-accent text-white" : "bg-navy-800 text-white"}`}>Get started</Link>
+      <Link href={loggedIn ? "/dashboard/plan" : "/register"} className={`mt-6 block text-center rounded-full py-2.5 text-sm font-semibold ${featured ? "bg-accent text-white" : "bg-navy-800 text-white"}`}>
+        {loggedIn ? "Manage plan" : "Get started"}
+      </Link>
     </div>
   );
 }
