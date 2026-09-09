@@ -3,7 +3,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import Link from "next/link";
-import api, { getMe } from "@/lib/api";
+import api, { getMe, formatDuration, vsPrev } from "@/lib/api";
 import AppShell from "@/components/AppShell";
 import { DualLineChart, MiniBars, Donut } from "@/components/Charts";
 import { Loader2, ArrowRight } from "lucide-react";
@@ -15,6 +15,7 @@ function DashboardInner() {
   const [user, setUser] = useState<any>(null);
   const [websites, setWebsites] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [series, setSeries] = useState<{ current: number[]; previous: number[] }>({ current: [], previous: [] });
   const [live, setLive] = useState<any>(null);
   const [kpi, setKpi] = useState("users");
   const [loading, setLoading] = useState(true);
@@ -28,11 +29,12 @@ function DashboardInner() {
         setUser(me); setWebsites(sites.data);
         const id = websiteId || sites.data[0]?.id;
         if (id) {
-          const [s, l] = await Promise.all([
+          const [s, l, ser] = await Promise.all([
             api.get(`/api/track/stats/${id}?days=${days}`),
             api.get(`/api/realtime/live/${id}`).catch(() => ({ data: null })),
+            api.get(`/api/track/series/${id}?days=${days}`).catch(() => ({ data: { current: [], previous: [] } })),
           ]);
-          setStats(s.data); setLive(l.data);
+          setStats(s.data); setLive(l.data); setSeries(ser.data || { current: [], previous: [] });
         }
       } catch { Cookies.remove("token"); router.push("/login"); }
       finally { setLoading(false); }
@@ -43,12 +45,13 @@ function DashboardInner() {
   const sessions = stats?.unique_sessions ?? 0;
   const pageviews = stats?.total_pageviews ?? 0;
   const bounce = stats?.bounce_rate ?? 0;
+  const dur = formatDuration(stats?.avg_duration_seconds || 0);
   const kpis = [
-    { key: "users", label: "Users", value: users.toLocaleString() },
-    { key: "sessions", label: "Sessions", value: sessions.toLocaleString() },
-    { key: "pv", label: "Pageviews", value: pageviews.toLocaleString() },
-    { key: "bounce", label: "Bounce Rate", value: `${bounce}%` },
-    { key: "dur", label: "Session Duration", value: "00:01:12" },
+    { key: "users", label: "Users", value: users.toLocaleString(), delta: vsPrev(users, stats?.previous_users || 0) },
+    { key: "sessions", label: "Sessions", value: sessions.toLocaleString(), delta: vsPrev(sessions, stats?.previous_sessions || 0) },
+    { key: "pv", label: "Pageviews", value: pageviews.toLocaleString(), delta: vsPrev(pageviews, stats?.previous_pageviews || 0) },
+    { key: "bounce", label: "Bounce Rate", value: `${bounce}%`, delta: vsPrev(bounce, stats?.previous_bounce || 0) },
+    { key: "dur", label: "Session Duration", value: dur, delta: "from visit span" },
   ];
   const deviceSegs = useMemo(() => {
     const d = stats?.devices || {};
@@ -79,20 +82,20 @@ function DashboardInner() {
                   <button key={k.key} onClick={() => setKpi(k.key)} className={`text-left px-3 sm:px-4 py-3 border-b sm:border-b-0 sm:border-r border-slate-100 last:border-r-0 ${kpi === k.key ? "kpi-active" : "bg-white"}`}>
                     <div className={`text-[11px] font-medium ${kpi === k.key ? "text-white/80" : "text-slate-500"}`}>{k.label}</div>
                     <div className="text-lg sm:text-xl font-bold leading-tight mt-0.5">{k.value}</div>
-                    <div className={`text-[10px] ${kpi === k.key ? "text-white/60" : "text-slate-400"}`}>vs prev.</div>
+                    <div className={`text-[10px] ${kpi === k.key ? "text-white/60" : "text-slate-400"}`}>{k.delta}</div>
                   </button>
                 ))}
               </div>
               <div className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-slate-700">Users</span>
+                  <span className="text-sm font-semibold text-slate-700">Pageviews</span>
                   <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="text-xs border border-slate-200 rounded-md px-2 py-1">
                     <option value={7}>day · 7d</option>
                     <option value={14}>day · 14d</option>
                     <option value={30}>day · 30d</option>
                   </select>
                 </div>
-                <div className="h-[180px] sm:h-[240px]"><DualLineChart /></div>
+                <div className="h-[180px] sm:h-[240px]"><DualLineChart current={series.current} previous={series.previous} /></div>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
@@ -107,7 +110,7 @@ function DashboardInner() {
               </div>
               <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4">
                 <h3 className="text-sm font-semibold text-slate-700 mb-3">Devices (Users)</h3>
-                <Donut segments={deviceSegs.every((s) => s.value === 0) ? [{ label: "Mobile", value: 60, color: "#0d4f7a" }, { label: "Desktop", value: 33, color: "#38bdf8" }, { label: "Tablet", value: 7, color: "#a855f7" }] : deviceSegs} />
+                <Donut segments={deviceSegs.every((s) => s.value === 0) ? [{ label: "No data", value: 1, color: "#cbd5e1" }] : deviceSegs} />
               </div>
             </div>
           </div>
@@ -115,8 +118,8 @@ function DashboardInner() {
             <div className="bg-[#0d4f7a] text-white rounded-xl p-4 sm:p-5 shadow-card">
               <div className="text-sm font-medium text-white/80">Active Users in the last 30 minutes</div>
               <div className="text-4xl sm:text-5xl font-bold mt-1">{live?.live_visitors ?? 0}</div>
-              <div className="mt-4 text-xs text-white/70 mb-1">Pageviews per Minute</div>
-              <MiniBars values={[8,7,8,9,8,7,8,9,8,8,9,8,7,8,6,3]} />
+              <div className="mt-4 text-xs text-white/70 mb-1">Pageviews trend (period)</div>
+              <MiniBars values={series.current.slice(-16).length ? series.current.slice(-16) : [1]} />
               <div className="mt-4">
                 <div className="flex justify-between text-xs text-white/70 mb-2"><span>Main Active Pages</span><span>Active Users</span></div>
                 {(live?.top_pages_live || stats?.top_pages || []).slice(0, 5).map((p: any) => (

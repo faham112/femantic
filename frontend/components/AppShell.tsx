@@ -24,14 +24,14 @@ export default function AppShell({
   const current = websites.find((w) => String(w.id) === siteId) || websites[0];
 
   useEffect(() => {
-    if (!siteId && websites[0] && pathname !== "/dashboard" && pathname !== "/dashboard/sites/new") {
+    if (!siteId && websites[0] && pathname !== "/dashboard" && pathname !== "/dashboard/sites/new" && pathname !== "/dashboard/plan") {
       router.replace(`${pathname}?id=${websites[0].id}`);
     }
   }, [siteId, websites, pathname, router]);
 
   const logout = () => { Cookies.remove("token"); router.push("/login"); };
   const withId = (href: string) => {
-    if (!current?.id || href === "/dashboard") return href;
+    if (!current?.id || href === "/dashboard" || href === "/dashboard/plan") return href;
     return `${href}?id=${current.id}`;
   };
 
@@ -57,11 +57,11 @@ export default function AppShell({
         {item("/dashboard", "Dashboard", LayoutDashboard, pathname === "/dashboard")}
         {item("/dashboard/realtime", "Real Time", Radio, pathname.startsWith("/dashboard/realtime"))}
         {item("/dashboard/analytics", "Audience", Users, pathname.startsWith("/dashboard/analytics"))}
-        {item("/dashboard/analytics", "Content", FileText, false)}
+        {item("/dashboard/content", "Content", FileText, pathname.startsWith("/dashboard/content"))}
         {item("/dashboard/analytics", "AI Traffic", Bot, false)}
-        {item("/dashboard/analytics", "Acquisition", Megaphone, false)}
-        {item("/dashboard/analytics", "Events", Activity, false)}
-        {item("/dashboard/analytics", "Reports", LineChart, false)}
+        {item("/dashboard/acquisition", "Acquisition", Megaphone, pathname.startsWith("/dashboard/acquisition"))}
+        {item("/dashboard/events", "Events", Activity, pathname.startsWith("/dashboard/events"))}
+        {item("/dashboard/analytics", "Reports", LineChart, pathname.startsWith("/dashboard/analytics"))}
         <div className="h-px bg-slate-100 my-2" />
         {isProOrAdmin && item("/dashboard/invites", "Invites", Shield, pathname.startsWith("/dashboard/invites"))}
         {user?.role === "admin" && item("/admin", "Admin", Users, pathname.startsWith("/admin"))}
@@ -71,7 +71,7 @@ export default function AppShell({
         </a>
       </nav>
       <div className="p-3 border-t border-slate-100">
-        <Link href="/register" className="block text-center text-xs font-semibold bg-navy-700 text-white rounded-lg py-2.5 hover:bg-navy-600">Plan Management</Link>
+        <Link href="/dashboard/plan" className="block text-center text-xs font-semibold bg-navy-700 text-white rounded-lg py-2.5 hover:bg-navy-600">Plan Management</Link>
       </div>
     </aside>
   );
@@ -101,7 +101,7 @@ export default function AppShell({
                 <div className="absolute left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
                   {websites.length === 0 && <p className="px-3 py-2 text-sm text-slate-500">No websites yet</p>}
                   {websites.map((w) => (
-                    <button key={w.id} onClick={() => { setPicker(false); router.push(`${pathname === "/dashboard" ? "/dashboard/analytics" : pathname}?id=${w.id}`); }}
+                    <button key={w.id} onClick={() => { setPicker(false); router.push(`${pathname === "/dashboard" ? "/dashboard" : pathname}?id=${w.id}`); }}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50">
                       <div className="font-medium text-slate-800 truncate">{w.name}</div>
                       <div className="text-xs text-slate-500 truncate">{w.domain}</div>
