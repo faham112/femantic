@@ -8,6 +8,7 @@ import {
   BarChart3, LayoutDashboard, Radio, Users, FileText, Bot, Megaphone, Activity,
   LineChart, Settings, HelpCircle, Menu, X, LogOut, Globe, ChevronDown, Shield, Home,
 } from "lucide-react";
+import { clearTokens } from "@/lib/api";
 
 type Website = { id: number; name: string; domain: string };
 type User = { email: string; role: string; full_name?: string; brand_name?: string };
@@ -24,14 +25,14 @@ export default function AppShell({
   const current = websites.find((w) => String(w.id) === siteId) || websites[0];
 
   useEffect(() => {
-    if (!siteId && websites[0] && pathname !== "/dashboard" && pathname !== "/dashboard/sites/new" && pathname !== "/dashboard/plan") {
+    if (!siteId && websites[0] && pathname !== "/dashboard" && pathname !== "/dashboard/sites/new" && pathname !== "/dashboard/plan" && pathname !== "/dashboard/settings") {
       router.replace(`${pathname}?id=${websites[0].id}`);
     }
   }, [siteId, websites, pathname, router]);
 
-  const logout = () => { Cookies.remove("token"); router.push("/"); };
+  const logout = () => { clearTokens(); router.push("/"); };
   const withId = (href: string) => {
-    if (!current?.id || href === "/dashboard" || href === "/dashboard/plan" || href === "/") return href;
+    if (!current?.id || href === "/dashboard" || href === "/dashboard/plan" || href === "/" || href === "/dashboard/settings") return href;
     return `${href}?id=${current.id}`;
   };
 
@@ -66,7 +67,7 @@ export default function AppShell({
         <div className="h-px bg-slate-100 my-2" />
         {isProOrAdmin && item("/dashboard/invites", "Invites", Shield, pathname.startsWith("/dashboard/invites"))}
         {user?.role === "admin" && item("/admin", "Admin", Users, pathname.startsWith("/admin"))}
-        {item("/dashboard/sites/new", "Settings", Settings, pathname.startsWith("/dashboard/sites"))}
+        {item("/dashboard/settings", "Settings", Settings, pathname.startsWith("/dashboard/settings") || pathname.startsWith("/dashboard/sites"))}
         <a href="#help" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-slate-600 hover:bg-slate-50">
           <HelpCircle className="w-4 h-4" /> Help
         </a>
