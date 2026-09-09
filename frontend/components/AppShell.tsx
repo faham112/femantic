@@ -6,7 +6,7 @@ import Cookies from "js-cookie";
 import { useEffect, useState } from "react";
 import {
   BarChart3, LayoutDashboard, Radio, Users, FileText, Bot, Megaphone, Activity,
-  LineChart, Settings, HelpCircle, Menu, X, LogOut, Globe, ChevronDown, Shield,
+  LineChart, Settings, HelpCircle, Menu, X, LogOut, Globe, ChevronDown, Shield, Home,
 } from "lucide-react";
 
 type Website = { id: number; name: string; domain: string };
@@ -29,9 +29,9 @@ export default function AppShell({
     }
   }, [siteId, websites, pathname, router]);
 
-  const logout = () => { Cookies.remove("token"); router.push("/login"); };
+  const logout = () => { Cookies.remove("token"); router.push("/"); };
   const withId = (href: string) => {
-    if (!current?.id || href === "/dashboard" || href === "/dashboard/plan") return href;
+    if (!current?.id || href === "/dashboard" || href === "/dashboard/plan" || href === "/") return href;
     return `${href}?id=${current.id}`;
   };
 
@@ -45,15 +45,16 @@ export default function AppShell({
   const isProOrAdmin = user?.role === "admin" || user?.role === "pro";
   const Sidebar = (
     <aside className="flex flex-col h-full bg-white border-r border-slate-200 w-[220px] min-w-[220px]">
-      <div className="px-4 h-14 flex items-center gap-2 border-b border-slate-100">
+      <Link href="/" className="px-4 h-14 flex items-center gap-2 border-b border-slate-100">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-navy-700 flex items-center justify-center">
           <BarChart3 className="w-4 h-4 text-white" />
         </div>
         <span className="font-bold text-navy-800 tracking-tight">
           {user?.role === "client" && user?.brand_name ? user.brand_name : "Femantic"}
         </span>
-      </div>
+      </Link>
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        {item("/", "Home", Home, false)}
         {item("/dashboard", "Dashboard", LayoutDashboard, pathname === "/dashboard")}
         {item("/dashboard/realtime", "Real Time", Radio, pathname.startsWith("/dashboard/realtime"))}
         {item("/dashboard/analytics", "Audience", Users, pathname.startsWith("/dashboard/analytics"))}
@@ -113,6 +114,7 @@ export default function AppShell({
                 </div>
               )}
             </div>
+            <Link href="/" className="hidden sm:inline text-xs text-slate-500 hover:text-navy-700">Home</Link>
             <span className="hidden sm:inline px-2 py-1 rounded-md bg-sky-50 text-navy-700 font-medium text-xs">Site</span>
             <div className="ml-auto flex items-center gap-2 sm:gap-3 min-w-0">
               <span className="hidden md:block text-xs text-slate-500 truncate max-w-[140px]">{user?.full_name || user?.email}</span>
