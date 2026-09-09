@@ -88,6 +88,7 @@ class TrackEvent(BaseModel):
     session_id: Optional[str] = None
     visitor_id: Optional[str] = None
     language: Optional[str] = None
+    timezone: Optional[str] = None
     screen_width: Optional[int] = None
     screen_height: Optional[int] = None
     device: Optional[str] = None
