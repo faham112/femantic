@@ -101,6 +101,8 @@ class TrackEvent(BaseModel):
     utm_source: Optional[str] = None
     utm_medium: Optional[str] = None
     utm_campaign: Optional[str] = None
+    utm_term: Optional[str] = None
+    utm_content: Optional[str] = None
     event_type: Optional[str] = "pageview"
     event_name: Optional[str] = None
     event_data: Optional[Dict[str, Any]] = None
