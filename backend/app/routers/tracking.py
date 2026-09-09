@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, cast, Date
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import re
 
 from app.database import get_db
-from app.models import Website, PageView, User
+from app.models import Website, PageView, User, Event
 from app.schemas import TrackEvent, StatsOverview
 from app.auth import get_current_user, user_can_access_website
 
@@ -78,6 +78,18 @@ async def track_pageview(
     if not website:
         raise HTTPException(status_code=404, detail="Invalid API key")
 
+    kind = (event.event_type or "pageview").lower()
+    if kind == "heartbeat":
+        db.add(Event(
+            website_id=website.id,
+            session_id=event.session_id,
+            visitor_id=event.visitor_id or event.session_id,
+            event_name="heartbeat",
+            event_data={"path": event.path},
+        ))
+        db.commit()
+        return {"status": "ok", "ignored": "heartbeat"}
+
     ua = user_agent or event.user_agent or ""
     score, label, is_bot = calculate_traffic_score(ua, event.path, event.referrer)
 
@@ -131,7 +143,6 @@ def get_stats(
         or 0
     )
 
-    # bounce ~ visitors with a single pageview
     bounce = 0.0
     if unique_sessions:
         singles = (
@@ -171,3 +182,39 @@ def get_stats(
         bots=base.filter(PageView.traffic_label == "bot").count(),
         suspicious=base.filter(PageView.traffic_label == "suspicious").count(),
     )
+
+
+@router.get("/series/{website_id}")
+def get_series(
+    website_id: int,
+    days: int = 14,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not user_can_access_website(db, current_user, website_id):
+        raise HTTPException(status_code=404, detail="Website not found")
+    days = max(1, min(days, 90))
+    now = datetime.utcnow().date()
+    start = now - timedelta(days=days - 1)
+    prev_start = start - timedelta(days=days)
+
+    rows = (
+        db.query(cast(PageView.created_at, Date).label("d"), func.count(PageView.id))
+        .filter(
+            PageView.website_id == website_id,
+            PageView.traffic_label == "human",
+            PageView.created_at >= datetime.combine(prev_start, datetime.min.time()),
+        )
+        .group_by("d")
+        .all()
+    )
+    by_day = {r[0]: r[1] for r in rows}
+
+    def fill(from_day: date, n: int):
+        out = []
+        for i in range(n):
+            day = from_day + timedelta(days=i)
+            out.append(int(by_day.get(day, 0)))
+        return out
+
+    return {"current": fill(start, days), "previous": fill(prev_start, days), "days": days}
