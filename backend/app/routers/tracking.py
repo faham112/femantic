@@ -13,6 +13,7 @@ from app.schemas import TrackEvent, StatsOverview
 from app.auth import get_current_user, user_can_access_website
 from app.config import settings
 from app.geo import country_from_request
+from app.utm import resolve_utms
 
 router = APIRouter(prefix="/api/track", tags=["Tracking"])
 
@@ -137,6 +138,7 @@ async def track_pageview(
     ua = user_agent or event.user_agent or ""
     score, label, is_bot = calculate_traffic_score(ua, event.path, event.referrer)
     country = country_from_request(request.headers, event.timezone)
+    utm_source, utm_medium, utm_campaign, utm_term, utm_content = resolve_utms(event)
 
     pageview = PageView(
         website_id=website.id,
@@ -152,9 +154,11 @@ async def track_pageview(
         language=event.language,
         screen_width=event.screen_width,
         screen_height=event.screen_height,
-        utm_source=event.utm_source,
-        utm_medium=event.utm_medium,
-        utm_campaign=event.utm_campaign,
+        utm_source=utm_source,
+        utm_medium=utm_medium,
+        utm_campaign=utm_campaign,
+        utm_term=utm_term,
+        utm_content=utm_content,
         is_bot=is_bot,
         traffic_score=score,
         traffic_label=label,
@@ -358,7 +362,10 @@ DIMS = {
     "utm_source": PageView.utm_source,
     "utm_medium": PageView.utm_medium,
     "utm_campaign": PageView.utm_campaign,
-    "source_medium": PageView.utm_medium,
+    "utm_term": PageView.utm_term,
+    "utm_content": PageView.utm_content,
+    "source_medium": func.concat(func.coalesce(PageView.utm_source, "(none)"), " / ", func.coalesce(PageView.utm_medium, "(none)")),
+    "referrer_source": func.concat(func.coalesce(PageView.referrer, "(direct)"), " | ", func.coalesce(PageView.utm_source, "(none)")),
     "traffic": PageView.traffic_label,
     "hostname": PageView.referrer,
 }
@@ -378,14 +385,6 @@ def breakdown(
     since = datetime.utcnow() - timedelta(days=days)
 
     if dim in ("entry", "exit"):
-        order = func.min(PageView.created_at) if dim == "entry" else func.max(PageView.created_at)
-        firsts = (
-            db.query(PageView.visitor_id, PageView.path, order.label("ts"))
-            .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human", PageView.visitor_id.isnot(None))
-            .group_by(PageView.visitor_id, PageView.path)
-            .subquery()
-        )
-        # simplify: first/last path per visitor via window-less group
         visitors = (
             db.query(PageView.visitor_id, func.min(PageView.id) if dim == "entry" else func.max(PageView.id))
             .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human", PageView.visitor_id.isnot(None))
@@ -414,13 +413,13 @@ def breakdown(
     )
     if dim != "traffic":
         q = q.filter(PageView.traffic_label == "human")
+    if dim in ("utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "source_medium"):
+        q = q.filter(PageView.utm_source.isnot(None) | PageView.utm_medium.isnot(None) | PageView.utm_campaign.isnot(None))
     rows = q.group_by(col).order_by(desc("views")).limit(50).all()
     total = sum(v for _, v in rows) or 1
     out = []
     for label, views in rows:
         name = label or ("Direct" if dim in ("referrer", "hostname") else "(not set)")
-        if dim == "source_medium":
-            name = label or "(none)"
         out.append({"label": str(name), "views": views, "pct": round(views * 100 / total, 1)})
     return {"dim": dim, "rows": out}
 
