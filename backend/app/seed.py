@@ -1,4 +1,4 @@
-"""Create / refresh Super Admin and a demo website with sample traffic."""
+"""Create Super Admin (once) and a demo website with sample traffic."""
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -18,6 +18,8 @@ PATHS = ["/", "/blog", "/pricing", "/docs", "/about", "/blog/analytics", "/featu
 REFERRERS = [None, "https://google.com", "https://twitter.com", "https://news.ycombinator.com", "https://facebook.com"]
 DEVICES = ["mobile", "desktop", "tablet", "desktop", "mobile"]
 BROWSERS = ["Chrome", "Chrome", "Safari", "Firefox", "Edge"]
+COUNTRIES = ["PK", "US", "GB", "AE", "IN", "DE"]
+SOURCES = [None, "google", "twitter", "newsletter", "linkedin"]
 
 
 def seed_admin() -> None:
@@ -31,21 +33,18 @@ def seed_admin() -> None:
             return
 
         user = db.query(User).filter(User.email == email).first()
-        hashed = get_password_hash(password)
         if user:
-            user.hashed_password = hashed
             user.role = UserRole.ADMIN
-            user.full_name = name or user.full_name
             user.is_active = True
             user.status = UserStatus.ACTIVE
-            if user.membership is None:
-                user.membership = MembershipStatus.FREE
+            if name and not user.full_name:
+                user.full_name = name
             db.commit()
-            logger.info("Admin account refreshed: %s", email)
+            logger.info("Admin account already exists (password left unchanged): %s", email)
         else:
             user = User(
                 email=email,
-                hashed_password=hashed,
+                hashed_password=get_password_hash(password),
                 full_name=name,
                 role=UserRole.ADMIN,
                 membership=MembershipStatus.FREE,
@@ -91,16 +90,19 @@ def _seed_demo_site(db: Session, owner: User) -> None:
         minutes_ago = randint(0, 14 * 24 * 60)
         created = now - timedelta(minutes=minutes_ago)
         path = choice(PATHS)
-        ref = choice(REFERRERS)
+        src = choice(SOURCES)
         rows.append(
             PageView(
                 website_id=site.id,
                 path=path,
                 title=path.strip("/") or "Home",
-                referrer=ref,
+                referrer=choice(REFERRERS),
                 visitor_id=f"demo-{randint(1, 35)}",
                 device=choice(DEVICES),
                 browser=choice(BROWSERS),
+                country=choice(COUNTRIES),
+                utm_source=src,
+                utm_medium="organic" if src == "google" else ("social" if src else None),
                 is_bot=False,
                 traffic_score=0.95,
                 traffic_label="human",

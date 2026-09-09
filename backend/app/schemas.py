@@ -20,7 +20,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
     full_name: Optional[str] = None
-    invite_token: Optional[str] = None   # When registering via invite link
+    invite_token: Optional[str] = None
 
 
 class UserLogin(BaseModel):
@@ -121,8 +121,14 @@ class StatsOverview(BaseModel):
     unique_sessions: int
     true_traffic: int
     bounce_rate: float
+    avg_duration_seconds: int = 0
+    previous_users: int = 0
+    previous_sessions: int = 0
+    previous_pageviews: int = 0
+    previous_bounce: float = 0
     top_pages: List[dict]
     top_referrers: List[dict]
+    top_sources: List[dict] = []
     devices: dict
     countries: List[dict]
     humans: Optional[int] = None
@@ -155,15 +161,10 @@ class MembershipUpdate(BaseModel):
     expires_at: Optional[datetime] = None
 
 
-# Invite Token Schemas
-
 class InviteTokenCreate(BaseModel):
     label: Optional[str] = None
     allowed_website_ids: List[int] = Field(..., min_length=1)
-    allowed_metrics: List[str] = Field(
-        default=["visitors", "pageviews", "utm"],
-        description="Metrics client can see: visitors, pageviews, utm, realtime, devices, countries"
-    )
+    allowed_metrics: List[str] = Field(default=["visitors", "pageviews", "utm"])
     max_uses: int = Field(default=1, ge=1, le=100)
     expires_in_days: Optional[int] = Field(default=30, ge=1, le=365)
 
@@ -186,7 +187,6 @@ class InviteTokenOut(BaseModel):
 
 
 class InviteTokenPublic(BaseModel):
-    """Public info shown on the invite register page (no sensitive data)."""
     label: Optional[str]
     brand_name: Optional[str]
     allowed_metrics: List[str]
