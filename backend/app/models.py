@@ -201,4 +201,4 @@ class Membership(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)
     stripe_subscription_id = Column(String(100), nullable=True)
 
-    user = relationship("Membership", back_populates="user")
+    user = relationship("User", back_populates="memberships")
