@@ -1,40 +1,28 @@
 # Femantic – Real-Time True Traffic Analytics
 
-Production domain: **https://analytics.globalcareerhub.org**
+Production: **https://analytics.globalcareerhub.org**
 
-## Production
+## Included (priority list)
 
-DNS A record:
+1. VPS: `git pull origin main && sudo bash scripts/deploy-femantic.sh`
+2. DualLineChart → `/api/track/series/{id}`
+3. Geo: Cloudflare `CF-IPCountry` + timezone fallback map (MaxMind optional later)
+4. Heartbeat stored as Event — not a pageview; used for session duration
+5. Login UI has no admin password; set `ADMIN_PASSWORD` + `JWT_SECRET` in `.env`
+6. Sidebar pages: Content, Acquisition (UTM), Events
+7. Track rate-limit, CORS = production domain only, seed does not reset admin password
+8. Plan Management = coming soon (no Stripe checkout)
 
-```
-analytics.globalcareerhub.org  →  VPS IP
-```
+## Admin (first seed only)
 
-Then on the VPS:
+- Email: `admin@femantic.com`
+- Password: value of `ADMIN_PASSWORD` (default `Admin@12345` until you change `.env`)
 
-```bash
-cd /var/www/html/femantic
-git pull origin main
-sudo bash scripts/deploy-femantic.sh
-sudo certbot --nginx -d analytics.globalcareerhub.org
-```
-
-- App: https://analytics.globalcareerhub.org
-- Login: https://analytics.globalcareerhub.org/login
-- Admin: `admin@femantic.com` / `Admin@12345`
-- Tracker: https://analytics.globalcareerhub.org/tracker/femantic.js
-
-### Install tracker
+## Tracker
 
 ```html
-<script defer
-  data-site="YOUR_API_KEY"
+<script defer data-site="YOUR_API_KEY"
   src="https://analytics.globalcareerhub.org/tracker/femantic.js"></script>
 ```
 
-## Local Docker
-
-```bash
-cp .env.example .env
-docker-compose up --build
-```
+Custom event: `Femantic.track("signup")`
