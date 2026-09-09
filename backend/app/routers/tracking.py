@@ -14,6 +14,7 @@ from app.auth import get_current_user, user_can_access_website
 from app.config import settings
 from app.geo import country_from_request
 from app.utm import resolve_utms
+from app.sessions_svc import upsert_session
 
 router = APIRouter(prefix="/api/track", tags=["Tracking"])
 
@@ -121,8 +122,18 @@ async def track_pageview(
         raise HTTPException(status_code=404, detail="Invalid API key")
 
     kind = (event.event_type or "pageview").lower()
+    ua = user_agent or event.user_agent or ""
+    device = event.device or detect_device(ua)
+    browser = detect_browser(ua)
+    os_name = detect_os(ua)
+    country = country_from_request(request.headers, event.timezone)
+
     if kind in ("heartbeat", "event"):
         try:
+            upsert_session(
+                db, website.id, event.visitor_id or event.session_id, event.session_id,
+                country=country, device=device, browser=browser, os=os_name, is_pageview=False,
+            )
             db.add(Event(
                 website_id=website.id,
                 session_id=event.session_id,
@@ -135,10 +146,12 @@ async def track_pageview(
             db.rollback()
         return {"status": "ok", "stored": kind}
 
-    ua = user_agent or event.user_agent or ""
     score, label, is_bot = calculate_traffic_score(ua, event.path, event.referrer)
-    country = country_from_request(request.headers, event.timezone)
     utm_source, utm_medium, utm_campaign, utm_term, utm_content = resolve_utms(event)
+    sess = upsert_session(
+        db, website.id, event.visitor_id or event.session_id, event.session_id,
+        country=country, device=device, browser=browser, os=os_name, is_pageview=True,
+    )
 
     pageview = PageView(
         website_id=website.id,
@@ -148,9 +161,9 @@ async def track_pageview(
         user_agent=ua[:1000] if ua else None,
         ip_address=ip[:45] if ip else None,
         country=country,
-        device=event.device or detect_device(ua),
-        browser=detect_browser(ua),
-        os=detect_os(ua),
+        device=device,
+        browser=browser,
+        os=os_name,
         language=event.language,
         screen_width=event.screen_width,
         screen_height=event.screen_height,
@@ -163,7 +176,7 @@ async def track_pageview(
         traffic_score=score,
         traffic_label=label,
         visitor_id=event.visitor_id or event.session_id,
-        session_id=None,
+        session_id=sess.id,
     )
     db.add(pageview)
     db.commit()
@@ -189,7 +202,29 @@ def _period_stats(db: Session, website_id: int, since: datetime, until: datetime
         or 0
     )
     bounce = 0.0
-    if users:
+    sess_q = db.query(func.count(func.distinct(PageView.session_id))).filter(
+        PageView.website_id == website_id,
+        PageView.created_at >= since,
+        PageView.created_at < until,
+        PageView.traffic_label == "human",
+        PageView.session_id.isnot(None),
+    ).scalar() or 0
+    if sess_q:
+        singles = (
+            db.query(PageView.session_id)
+            .filter(
+                PageView.website_id == website_id,
+                PageView.created_at >= since,
+                PageView.created_at < until,
+                PageView.traffic_label == "human",
+                PageView.session_id.isnot(None),
+            )
+            .group_by(PageView.session_id)
+            .having(func.count(PageView.id) == 1)
+            .count()
+        )
+        bounce = round((singles / sess_q) * 100, 1)
+    elif users:
         singles = (
             db.query(PageView.visitor_id)
             .filter(
@@ -204,47 +239,14 @@ def _period_stats(db: Session, website_id: int, since: datetime, until: datetime
         )
         bounce = round((singles / users) * 100, 1)
 
-    spans = (
-        db.query(
-            PageView.visitor_id,
-            func.min(PageView.created_at),
-            func.max(PageView.created_at),
-        )
-        .filter(
-            PageView.website_id == website_id,
-            PageView.created_at >= since,
-            PageView.created_at < until,
-            PageView.traffic_label == "human",
-            PageView.visitor_id.isnot(None),
-        )
-        .group_by(PageView.visitor_id)
-        .all()
+    from app.models import Session as SessModel
+    avg_dur = (
+        db.query(func.avg(SessModel.duration))
+        .filter(SessModel.website_id == website_id, SessModel.started_at >= since, SessModel.started_at < until)
+        .scalar()
     )
-    hb_rows = (
-        db.query(Event.visitor_id, func.max(Event.created_at))
-        .filter(
-            Event.website_id == website_id,
-            Event.event_name == "heartbeat",
-            Event.created_at >= since,
-            Event.created_at < until,
-            Event.visitor_id.isnot(None),
-        )
-        .group_by(Event.visitor_id)
-        .all()
-    )
-    hb_last = {vid: ts for vid, ts in hb_rows}
-    durations = []
-    for vid, mn, mx in spans:
-        last = mx
-        extra = hb_last.get(vid)
-        if extra and (last is None or extra > last):
-            last = extra
-        if mn and last:
-            sec = int((last - mn).total_seconds())
-            if sec > 0:
-                durations.append(min(sec, 8 * 3600))
-    avg_dur = int(sum(durations) / len(durations)) if durations else 0
-    return views, users, bounce, avg_dur
+    avg_dur = int(avg_dur or 0)
+    return views, users if users else sess_q, bounce, avg_dur
 
 
 @router.get("/stats/{website_id}", response_model=StatsOverview)
