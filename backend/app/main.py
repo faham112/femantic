@@ -2,20 +2,21 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from app.database import engine, Base
+from app.database import engine, Base, ensure_columns
 from app.routers import auth, users, websites, tracking, admin, memberships, invites
 from app.websocket import realtime
 from app.seed import seed_admin
 from app.config import settings
 
 Base.metadata.create_all(bind=engine)
+ensure_columns()
 seed_admin()
 
 docs = "/docs" if settings.DEBUG else None
 app = FastAPI(
     title="Femantic API",
     description="Real-time True Traffic Analytics",
-    version="1.4.0",
+    version="1.5.0",
     docs_url=docs,
     redoc_url=docs and "/redoc",
     openapi_url="/openapi.json" if settings.DEBUG else None,
@@ -58,7 +59,7 @@ def _tracker_path():
 
 @app.get("/")
 def root():
-    return {"message": "Femantic API", "status": "running", "version": "1.4.0"}
+    return {"message": "Femantic API", "status": "running", "version": "1.5.0"}
 
 
 @app.get("/health")
@@ -72,4 +73,4 @@ def tracker_script():
     path = _tracker_path()
     if not path:
         return {"error": "tracker not found"}
-    return FileResponse(path, media_type="application/javascript", headers={"Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*"})
+    return FileResponse(path, media_type="application/javascript", headers={"Cache-Control": "public, max-age=300", "Access-Control-Allow-Origin": "*"})
