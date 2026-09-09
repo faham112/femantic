@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from app.database import engine, Base, ensure_columns
-from app.routers import auth, users, websites, tracking, admin, memberships, invites
+from app.routers import auth, users, websites, tracking, admin, memberships, invites, network
 from app.websocket import realtime
 from app.seed import seed_admin
 from app.config import settings
@@ -16,7 +16,7 @@ docs = "/docs" if settings.DEBUG else None
 app = FastAPI(
     title="Femantic API",
     description="Real-time True Traffic Analytics",
-    version="1.5.0",
+    version="1.6.0",
     docs_url=docs,
     redoc_url=docs and "/redoc",
     openapi_url="/openapi.json" if settings.DEBUG else None,
@@ -36,6 +36,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(websites.router)
 app.include_router(tracking.router)
+app.include_router(network.router)
 app.include_router(admin.router)
 app.include_router(memberships.router)
 app.include_router(invites.router)
@@ -59,7 +60,7 @@ def _tracker_path():
 
 @app.get("/")
 def root():
-    return {"message": "Femantic API", "status": "running", "version": "1.5.0"}
+    return {"message": "Femantic API", "status": "running", "version": "1.6.0"}
 
 
 @app.get("/health")

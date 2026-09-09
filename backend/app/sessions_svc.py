@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 from sqlalchemy.orm import Session as DB
 from app.models import Session
 import secrets
@@ -7,8 +8,8 @@ import secrets
 def upsert_session(
     db: DB,
     website_id: int,
-    visitor_id: str | None,
-    session_key: str | None,
+    visitor_id: Optional[str],
+    session_key: Optional[str],
     country=None,
     device=None,
     browser=None,
