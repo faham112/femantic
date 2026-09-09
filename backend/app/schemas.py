@@ -66,6 +66,12 @@ class WebsiteCreate(BaseModel):
     domain: str
 
 
+class WebsiteUpdate(BaseModel):
+    name: Optional[str] = None
+    domain: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class WebsiteOut(BaseModel):
     id: int
     name: str
