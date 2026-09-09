@@ -8,18 +8,65 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+function cookieOpts(days: number) {
+  const secure = typeof window !== "undefined" && window.location.protocol === "https:";
+  return { expires: days, sameSite: "lax" as const, secure };
+}
+
+export function setToken(access: string, refresh?: string) {
+  Cookies.set("token", access, cookieOpts(1));
+  if (refresh) Cookies.set("refresh_token", refresh, cookieOpts(7));
+}
+
+export function clearTokens() {
+  Cookies.remove("token");
+  Cookies.remove("refresh_token");
+}
+
 api.interceptors.request.use((config) => {
   const token = Cookies.get("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-export default api;
+let refreshing: Promise<string | null> | null = null;
 
-export function setToken(token: string) {
-  const secure = typeof window !== "undefined" && window.location.protocol === "https:";
-  Cookies.set("token", token, { expires: 1, sameSite: "lax", secure });
+async function refreshAccess(): Promise<string | null> {
+  const rt = Cookies.get("refresh_token");
+  if (!rt) return null;
+  try {
+    const res = await axios.post(`${API_URL}/api/auth/refresh`, { refresh_token: rt });
+    const access = res.data?.access_token;
+    const nextRt = res.data?.refresh_token;
+    if (access) setToken(access, nextRt);
+    return access || null;
+  } catch {
+    clearTokens();
+    return null;
+  }
 }
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status !== 401 || original?._retry) {
+      return Promise.reject(error);
+    }
+    if (String(original?.url || "").includes("/api/auth/")) {
+      return Promise.reject(error);
+    }
+    original._retry = true;
+    if (!refreshing) refreshing = refreshAccess().finally(() => { refreshing = null; });
+    const access = await refreshing;
+    if (!access) return Promise.reject(error);
+    original.headers = original.headers || {};
+    original.headers.Authorization = `Bearer ${access}`;
+    return api(original);
+  }
+);
+
+export default api;
 
 export const login = async (email: string, password: string) => {
   const form = new URLSearchParams();
@@ -28,6 +75,7 @@ export const login = async (email: string, password: string) => {
   const res = await api.post("/api/auth/login", form, {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
+  if (res.data?.access_token) setToken(res.data.access_token, res.data.refresh_token);
   return res.data;
 };
 

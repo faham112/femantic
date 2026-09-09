@@ -14,7 +14,8 @@ from app.schemas import TokenData
 
 SECRET_KEY = os.getenv("JWT_SECRET", "change-this-to-a-very-long-random-secret-key")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -32,13 +33,34 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
+def _encode(data: dict, expires: datetime) -> str:
+    payload = data.copy()
+    payload["exp"] = expires
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return _encode({**data, "typ": "access"}, expire)
+
+
+def create_refresh_token(data: dict) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    return _encode({**data, "typ": "refresh"}, expire)
+
+
+def decode_token(token: str, expected_typ: str = "access") -> dict:
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    if payload.get("typ") not in (expected_typ, None) and expected_typ == "refresh":
+        if payload.get("typ") != "refresh":
+            raise JWTError("wrong token type")
+    if expected_typ == "refresh" and payload.get("typ") != "refresh":
+        raise JWTError("not a refresh token")
+    if expected_typ == "access" and payload.get("typ") not in ("access", None):
+        raise JWTError("not an access token")
+    return payload
 
 
 def get_user_by_email(db: Session, email: Optional[str]) -> Optional[User]:
@@ -58,7 +80,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = decode_token(token, "access")
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
@@ -74,35 +96,23 @@ async def get_current_user(
 
 async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required")
     return current_user
 
 
 async def get_current_pro_or_admin(current_user: User = Depends(get_current_user)) -> User:
-    """Only Admin or Pro users can manage websites / create invite tokens."""
     if current_user.role not in (UserRole.ADMIN, UserRole.PRO):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Pro or Admin privileges required"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Pro or Admin privileges required")
     return current_user
 
 
 def get_allowed_website_ids(db: Session, user: User) -> Optional[List[int]]:
-    """
-    Returns list of website IDs the user is allowed to access.
-    - Admin / Pro: None means "all their own websites"
-    - Client: explicit list from ClientWebsiteAccess
-    """
     if user.role == UserRole.CLIENT:
         rows = db.query(ClientWebsiteAccess.website_id).filter(
             ClientWebsiteAccess.user_id == user.id
         ).all()
         return [r[0] for r in rows]
-    return None  # Owner sees their own
+    return None
 
 
 def user_can_access_website(db: Session, user: User, website_id: int) -> bool:
@@ -111,12 +121,11 @@ def user_can_access_website(db: Session, user: User, website_id: int) -> bool:
     if user.role == UserRole.PRO:
         from app.models import Website
         return db.query(Website).filter(
-            Website.id == website_id,
-            Website.owner_id == user.id
+            Website.id == website_id, Website.owner_id == user.id
         ).first() is not None
     if user.role == UserRole.CLIENT:
         return db.query(ClientWebsiteAccess).filter(
             ClientWebsiteAccess.user_id == user.id,
-            ClientWebsiteAccess.website_id == website_id
+            ClientWebsiteAccess.website_id == website_id,
         ).first() is not None
     return False
