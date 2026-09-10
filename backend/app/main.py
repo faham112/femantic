@@ -1,7 +1,8 @@
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
+from starlette.middleware.base import BaseHTTPMiddleware
 from app.database import engine, Base, ensure_columns
 from app.routers import auth, users, websites, tracking, admin, memberships, invites, network
 from app.websocket import realtime
@@ -16,7 +17,7 @@ docs = "/docs" if settings.DEBUG else None
 app = FastAPI(
     title="Femantic API",
     description="Real-time True Traffic Analytics",
-    version="1.6.0",
+    version="1.6.1",
     docs_url=docs,
     redoc_url=docs and "/redoc",
     openapi_url="/openapi.json" if settings.DEBUG else None,
@@ -31,6 +32,31 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+
+class TrackCorsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        open_path = path.startswith("/api/track/") or path in ("/tracker/femantic.js", "/femantic.js", "/j.js")
+        if open_path and request.method == "OPTIONS":
+            return Response(
+                status_code=204,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type",
+                    "Access-Control-Max-Age": "86400",
+                },
+            )
+        response = await call_next(request)
+        if open_path:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
+
+
+app.add_middleware(TrackCorsMiddleware)
 
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -60,7 +86,7 @@ def _tracker_path():
 
 @app.get("/")
 def root():
-    return {"message": "Femantic API", "status": "running", "version": "1.6.0"}
+    return {"message": "Femantic API", "status": "running", "version": "1.6.1"}
 
 
 @app.get("/health")
@@ -70,8 +96,13 @@ def health():
 
 @app.get("/tracker/femantic.js")
 @app.get("/femantic.js")
+@app.get("/j.js")
 def tracker_script():
     path = _tracker_path()
     if not path:
         return {"error": "tracker not found"}
-    return FileResponse(path, media_type="application/javascript", headers={"Cache-Control": "public, max-age=300", "Access-Control-Allow-Origin": "*"})
+    return FileResponse(
+        path,
+        media_type="application/javascript",
+        headers={"Cache-Control": "public, max-age=300", "Access-Control-Allow-Origin": "*"},
+    )
