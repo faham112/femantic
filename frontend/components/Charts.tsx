@@ -1,8 +1,8 @@
 "use client";
 
 export function DualLineChart({ current = [], previous = [], height = 220 }: { current?: number[]; previous?: number[]; height?: number }) {
-  const a = current.length ? current : [4, 7, 4, 4.2, 4, 5.4, 3.4, 5.6, 4.8, 3.9, 4.3, 4.1, 4.3, 3.8];
-  const b = previous.length ? previous : [6.4, 4.3, 4.4, 4.4, 3.9, 5.4, 3.8, 7.1, 5.1, 4.5, 4.3, 4.3, 5.3, 4.2];
+  const a = current.length ? current : [0, 0];
+  const b = previous.length ? previous : a.map(() => 0);
   const max = Math.max(...a, ...b, 1);
   const w = 640;
   const h = height;
@@ -30,10 +30,11 @@ export function DualLineChart({ current = [], previous = [], height = 220 }: { c
 
 export function MiniBars({ values, color = "#fff" }: { values: number[]; color?: string }) {
   const max = Math.max(...values, 1);
+  const bars = values.length ? values : Array.from({ length: 30 }, () => 0);
   return (
-    <div className="flex items-end gap-[3px] h-16 w-full">
-      {values.map((v, i) => (
-        <div key={i} className="flex-1 rounded-t-[2px]" style={{ height: `${Math.max(8, (v / max) * 100)}%`, background: color, opacity: 0.9 }} />
+    <div className="flex items-end gap-[2px] h-20 w-full">
+      {bars.map((v, i) => (
+        <div key={i} className="flex-1 rounded-t-[2px]" style={{ height: `${Math.max(6, (v / max) * 100)}%`, background: color, opacity: 0.92 }} />
       ))}
     </div>
   );
@@ -57,11 +58,11 @@ export function Donut({ segments }: { segments: { label: string; value: number; 
         })}
         <circle cx="48" cy="48" r="22" fill="white" />
       </svg>
-      <ul className="text-xs space-y-1">
+      <ul className="text-xs space-y-2 flex-1">
         {segments.map((s) => (
           <li key={s.label} className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
-            <span className="text-slate-600">{s.label}</span>
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+            <span className="text-slate-600 flex-1">{s.label}</span>
             <span className="font-semibold text-slate-800">{Math.round((s.value / total) * 100)}%</span>
           </li>
         ))}
