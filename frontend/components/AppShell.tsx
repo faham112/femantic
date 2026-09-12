@@ -22,15 +22,16 @@ export default function AppShell({
   const [picker, setPicker] = useState(false);
   const siteId = searchParams.get("id");
   const dim = searchParams.get("dim");
+  const view = searchParams.get("view");
   const current = websites.find((w) => String(w.id) === siteId) || websites[0];
 
   useEffect(() => {
     const skip = ["/dashboard", "/dashboard/sites/new", "/dashboard/plan", "/dashboard/settings", "/dashboard/help", "/admin"];
     if (!siteId && websites[0] && !skip.includes(pathname) && pathname.startsWith("/dashboard")) {
-      const extra = dim ? `&dim=${dim}` : "";
+      const extra = [dim ? `dim=${dim}` : "", view ? `view=${view}` : ""].filter(Boolean).map((x) => `&${x}`).join("");
       router.replace(`${pathname}?id=${websites[0].id}${extra}`);
     }
-  }, [siteId, websites, pathname, router, dim]);
+  }, [siteId, websites, pathname, router, dim, view]);
 
   const logout = () => { clearTokens(); router.push("/"); };
   const href = (path: string, extra = "") => {
@@ -55,8 +56,8 @@ export default function AppShell({
         <Link href={current?.id ? `/dashboard?id=${current.id}` : "/dashboard"} onClick={() => setOpen(false)} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${pathname === "/dashboard" ? "bg-sky-50 text-navy-700 font-medium" : "text-slate-600 hover:bg-slate-50"}`}><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
 
         <Group icon={Radio} label="Real Time" openDefault={onRealtime}>
-          <Sub href={href("/dashboard/realtime")} label="Overview" active={onRealtime} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/realtime")} label="Sources" active={onRealtime} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/realtime")} label="Overview" active={onRealtime && view !== "sources"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/realtime", "&view=sources")} label="Sources" active={onRealtime && view === "sources"} close={() => setOpen(false)} />
           <Sub href={href("/dashboard/content")} label="Content" active={pathname.startsWith("/dashboard/content")} close={() => setOpen(false)} />
           <Sub href={href("/dashboard/report", "&dim=country")} label="Country" active={dim === "country"} close={() => setOpen(false)} />
         </Group>
@@ -97,9 +98,6 @@ export default function AppShell({
 
         <Group icon={HelpCircle} label="Help" openDefault={pathname.startsWith("/dashboard/help")}>
           <Sub href="/dashboard/help" label="FAQ" active={pathname.startsWith("/dashboard/help")} close={() => setOpen(false)} />
-          <Sub href="/dashboard/help" label="Create Ticket" active={false} close={() => setOpen(false)} />
-          <Sub href="/dashboard/help" label="Documentation" active={false} close={() => setOpen(false)} />
-          <Sub href="/dashboard/help" label="API Documentation" active={false} close={() => setOpen(false)} />
         </Group>
 
         <div className="h-px bg-slate-100 my-2" />
@@ -138,7 +136,7 @@ export default function AppShell({
                 <div className="absolute left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
                   {websites.length === 0 && <p className="px-3 py-2 text-sm text-slate-500">No websites yet</p>}
                   {websites.map((w) => (
-                    <button key={w.id} onClick={() => { setPicker(false); router.push(`${pathname}?id=${w.id}${dim ? `&dim=${dim}` : ""}`); }}
+                    <button key={w.id} onClick={() => { setPicker(false); router.push(`${pathname}?id=${w.id}${dim ? `&dim=${dim}` : ""}${view ? `&view=${view}` : ""}`); }}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50">
                       <div className="font-medium text-slate-800 truncate">{w.name}</div>
                       <div className="text-xs text-slate-500 truncate">{w.domain}</div>
@@ -151,9 +149,7 @@ export default function AppShell({
               )}
             </div>
             <Link href="/dashboard/network" className="hidden sm:inline px-2 py-1 rounded-md bg-sky-50 text-navy-700 font-medium text-xs">Network</Link>
-            <Link href="/" className="hidden sm:inline text-xs text-slate-500 hover:text-navy-700">Home</Link>
             <div className="ml-auto flex items-center gap-2 sm:gap-3 min-w-0">
-              <span className="hidden md:block text-xs text-slate-500 truncate max-w-[140px]">{user?.full_name || user?.email}</span>
               <div className="w-8 h-8 rounded-full bg-navy-700 text-white text-xs font-bold flex items-center justify-center shrink-0">
                 {(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
               </div>
