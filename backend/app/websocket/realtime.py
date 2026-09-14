@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from sqlalchemy import func, case
+from sqlalchemy import func
 
 from app.database import get_db
 from app.models import PageView, Website, User
@@ -10,12 +10,15 @@ from app.auth import get_current_user, user_can_access_website
 router = APIRouter(prefix="/api/realtime", tags=["Realtime"])
 
 
-def _human(q, website_id, since):
-    return q.filter(
-        PageView.website_id == website_id,
-        PageView.created_at >= since,
-        PageView.traffic_label == "human",
-    )
+def _bucket_device(raw: str | None) -> str:
+    s = (raw or "").lower()
+    if "tab" in s:
+        return "tablet"
+    if "mob" in s or "phone" in s or "android" in s or "ios" in s:
+        return "mobile"
+    if "desk" in s or "win" in s or "mac" in s or "linux" in s:
+        return "desktop"
+    return "desktop" if s else "desktop"
 
 
 @router.get("/live/{website_id}")
@@ -35,7 +38,6 @@ async def live_stats(
     now = datetime.utcnow()
     since = now - timedelta(minutes=minutes)
     since30 = now - timedelta(minutes=30)
-    since1 = now - timedelta(minutes=1)
 
     live_visitors = db.query(func.count(func.distinct(PageView.visitor_id))).filter(
         PageView.website_id == website_id,
@@ -49,12 +51,15 @@ async def live_stats(
         PageView.traffic_label == "human",
     ).count()
 
-    devices = dict(
+    raw_devices = (
         db.query(PageView.device, func.count(PageView.id))
         .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human")
         .group_by(PageView.device)
         .all()
     )
+    devices = {"desktop": 0, "mobile": 0, "tablet": 0}
+    for name, n in raw_devices:
+        devices[_bucket_device(name)] += int(n or 0)
 
     top_pages = (
         db.query(PageView.path, func.count(func.distinct(PageView.visitor_id)).label("views"))
@@ -81,42 +86,6 @@ async def live_stats(
     source_rows = [
         {"source": s, "medium": m, "users": n, "pct": round(n * 100 / src_total, 1)}
         for s, m, n in sources
-    ]
-
-    content = (
-        db.query(
-            func.coalesce(PageView.utm_source, "(direct)"),
-            PageView.path,
-            func.count(func.distinct(PageView.visitor_id)),
-        )
-        .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human")
-        .group_by(PageView.utm_source, PageView.path)
-        .order_by(func.count(func.distinct(PageView.visitor_id)).desc())
-        .limit(40)
-        .all()
-    )
-    c_total = sum(n for *_, n in content) or 1
-    content_rows = [
-        {"source": s, "medium": p, "users": n, "pct": round(n * 100 / c_total, 1)}
-        for s, p, n in content
-    ]
-
-    geo = (
-        db.query(
-            func.coalesce(PageView.utm_source, "(direct)"),
-            func.coalesce(PageView.country, "Unknown"),
-            func.count(func.distinct(PageView.visitor_id)),
-        )
-        .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human")
-        .group_by(PageView.utm_source, PageView.country)
-        .order_by(func.count(func.distinct(PageView.visitor_id)).desc())
-        .limit(40)
-        .all()
-    )
-    g_total = sum(n for *_, n in geo) or 1
-    geo_rows = [
-        {"source": s, "medium": c, "users": n, "pct": round(n * 100 / g_total, 1)}
-        for s, c, n in geo
     ]
 
     minute_series = []
@@ -155,11 +124,9 @@ async def live_stats(
         "live_visitors": live_visitors,
         "window_minutes": minutes,
         "pageviews_last_5min": pageviews_window,
-        "devices": {k or "unknown": v for k, v in devices.items()},
+        "devices": devices,
         "top_pages_live": [{"path": p, "views": v} for p, v in top_pages],
         "sources": source_rows,
-        "sources_content": content_rows,
-        "source_country": geo_rows,
         "minute_series": minute_series,
         "last_minute_series": last_minute,
         "recent_visitors": [
