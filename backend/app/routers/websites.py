@@ -15,6 +15,19 @@ def generate_api_key() -> str:
     return secrets.token_hex(32)
 
 
+def generate_public_key() -> str:
+    return secrets.token_urlsafe(10).replace("-", "").replace("_", "").lower()[:16]
+
+
+def ensure_public_key(db: Session, website: Website) -> Website:
+    if not website.public_key:
+        website.public_key = generate_public_key()
+        db.add(website)
+        db.commit()
+        db.refresh(website)
+    return website
+
+
 def _owned(db: Session, current_user: User, website_id: int) -> Website:
     q = db.query(Website).filter(Website.id == website_id)
     if current_user.role != UserRole.ADMIN:
@@ -41,7 +54,7 @@ def create_website(
         name=website_in.name.strip() or domain,
         domain=domain,
         api_key=generate_api_key(),
-        public_key=secrets.token_hex(12),
+        public_key=generate_public_key(),
         owner_id=current_user.id,
         is_active=True,
     )
@@ -57,14 +70,23 @@ def list_my_websites(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role == UserRole.ADMIN:
-        return db.query(Website).order_by(Website.id.desc()).all()
-    if current_user.role == UserRole.CLIENT:
+        rows = db.query(Website).order_by(Website.id.desc()).all()
+    elif current_user.role == UserRole.CLIENT:
         access_rows = db.query(ClientWebsiteAccess).filter(ClientWebsiteAccess.user_id == current_user.id).all()
         website_ids = [r.website_id for r in access_rows]
-        if not website_ids:
-            return []
-        return db.query(Website).filter(Website.id.in_(website_ids)).all()
-    return db.query(Website).filter(Website.owner_id == current_user.id).all()
+        rows = db.query(Website).filter(Website.id.in_(website_ids)).all() if website_ids else []
+    else:
+        rows = db.query(Website).filter(Website.owner_id == current_user.id).all()
+    dirty = False
+    for w in rows:
+        if not w.public_key:
+            w.public_key = generate_public_key()
+            dirty = True
+    if dirty:
+        db.commit()
+        for w in rows:
+            db.refresh(w)
+    return rows
 
 
 @router.get("/{website_id}", response_model=WebsiteOut)
@@ -78,7 +100,7 @@ def get_website(
     website = db.query(Website).filter(Website.id == website_id).first()
     if not website:
         raise HTTPException(status_code=404, detail="Website not found")
-    return website
+    return ensure_public_key(db, website)
 
 
 @router.patch("/{website_id}", response_model=WebsiteOut)

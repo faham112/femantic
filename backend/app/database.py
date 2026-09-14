@@ -22,11 +22,12 @@ def get_db():
 
 
 def ensure_columns():
-    """Add columns and indexes that create_all will not alter on existing tables."""
     stmts = [
         "ALTER TABLE pageviews ADD COLUMN IF NOT EXISTS utm_term VARCHAR(100)",
         "ALTER TABLE pageviews ADD COLUMN IF NOT EXISTS utm_content VARCHAR(100)",
         "ALTER TABLE pageviews ADD COLUMN IF NOT EXISTS visitor_id VARCHAR(64)",
+        "ALTER TABLE websites ADD COLUMN IF NOT EXISTS public_key VARCHAR(32)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_websites_public_key ON websites (public_key)",
         "CREATE INDEX IF NOT EXISTS ix_pageviews_utm_source ON pageviews (utm_source)",
         "CREATE INDEX IF NOT EXISTS ix_pageviews_utm_campaign ON pageviews (utm_campaign)",
         "CREATE INDEX IF NOT EXISTS ix_pageviews_utm_medium ON pageviews (utm_medium)",
