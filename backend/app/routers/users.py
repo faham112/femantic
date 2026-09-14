@@ -37,7 +37,7 @@ def get_user(
     return user
 
 
-@router.patch("{user_id}", response_model=UserOut)
+@router.patch("/{user_id}", response_model=UserOut)
 def update_user(
     user_id: int,
     user_update: UserUpdate,
@@ -49,7 +49,7 @@ def update_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     update_data = user_update.model_dump(exclude_unset=True)
-    if update_data.get("role") == UserRole.ADMIN or str(update_data.get("role")) == "admin":
+    if str(update_data.get("role")) in ("admin", "UserRole.ADMIN"):
         raise HTTPException(status_code=400, detail="Cannot promote anyone to admin")
     if user.role == UserRole.ADMIN and "role" in update_data:
         raise HTTPException(status_code=400, detail="Cannot change admin role")
