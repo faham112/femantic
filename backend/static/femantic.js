@@ -1,15 +1,20 @@
 /**
- * Femantic Tracker v1.2
- * Captures utm_source, utm_medium, utm_campaign, utm_term, utm_content.
- * First-touch UTMs stick for the browser session.
+ * Femantic Tracker v1.3
+ * Blogger-safe: finds data-site even when currentScript is null.
  */
 (function () {
   "use strict";
 
   var script = document.currentScript;
+  if (!script) {
+    var nodes = document.getElementsByTagName("script");
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      if (nodes[i].getAttribute("data-site")) { script = nodes[i]; break; }
+    }
+  }
   var siteKey = script && script.getAttribute("data-site");
   if (!siteKey) {
-    console.warn("[Femantic] Missing data-site attribute");
+    console.warn("[Femantic] Missing data-site");
     return;
   }
 
@@ -22,7 +27,6 @@
   var SESSION_KEY = "femantic_sid";
   var VISITOR_KEY = "femantic_vid";
   var UTM_KEY = "femantic_utm";
-  var HEARTBEAT_INTERVAL = 30000;
 
   function uuid() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -60,18 +64,9 @@
       utm_term: q && q.get("utm_term"),
       utm_content: q && q.get("utm_content")
     };
-    if (q && q.get("gclid") && !fresh.utm_source) {
-      fresh.utm_source = "google";
-      fresh.utm_medium = fresh.utm_medium || "cpc";
-    }
-    if (q && q.get("fbclid") && !fresh.utm_source) {
-      fresh.utm_source = "facebook";
-      fresh.utm_medium = fresh.utm_medium || "paid";
-    }
-    if (q && q.get("msclkid") && !fresh.utm_source) {
-      fresh.utm_source = "bing";
-      fresh.utm_medium = fresh.utm_medium || "cpc";
-    }
+    if (q && q.get("gclid") && !fresh.utm_source) { fresh.utm_source = "google"; fresh.utm_medium = fresh.utm_medium || "cpc"; }
+    if (q && q.get("fbclid") && !fresh.utm_source) { fresh.utm_source = "facebook"; fresh.utm_medium = fresh.utm_medium || "paid"; }
+    if (q && q.get("msclkid") && !fresh.utm_source) { fresh.utm_source = "bing"; fresh.utm_medium = fresh.utm_medium || "cpc"; }
     var hasFresh = fresh.utm_source || fresh.utm_medium || fresh.utm_campaign || fresh.utm_term || fresh.utm_content;
     if (hasFresh) {
       try { sessionStorage.setItem(UTM_KEY, JSON.stringify(fresh)); } catch (e) {}
@@ -90,17 +85,18 @@
   function buildPayload(eventType) {
     var utm = captureUtm();
     return {
-      path: window.location.pathname + window.location.search,
+      path: (window.location.pathname || "/") + (window.location.search || ""),
       title: document.title || "",
       referrer: document.referrer || null,
       user_agent: navigator.userAgent,
       language: navigator.language || null,
       screen_width: window.screen ? window.screen.width : null,
       screen_height: window.screen ? window.screen.height : null,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+      timezone: (Intl.DateTimeFormat().resolvedOptions().timeZone) || null,
       device: detectDevice(),
       visitor_id: visitorId,
       session_id: sessionId,
+      hostname: window.location.hostname || null,
       utm_source: utm.utm_source || null,
       utm_medium: utm.utm_medium || null,
       utm_campaign: utm.utm_campaign || null,
@@ -113,26 +109,30 @@
 
   function send(payload) {
     var url = API_BASE + "/" + siteKey;
+    var body = JSON.stringify(payload);
     try {
       if (navigator.sendBeacon) {
-        navigator.sendBeacon(url, new Blob([JSON.stringify(payload)], { type: "application/json" }));
-        return;
+        var ok = navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
+        if (ok) return;
       }
     } catch (e) {}
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      keepalive: true
-    }).catch(function () {});
+    try {
+      fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: body, keepalive: true, mode: "cors" }).catch(function () {});
+    } catch (e2) {}
   }
 
-  function trackPageview() { send(buildPayload("pageview")); }
+  var sent = false;
+  function trackPageview() {
+    send(buildPayload("pageview"));
+    sent = true;
+  }
 
-  if (document.readyState === "complete") trackPageview();
-  else window.addEventListener("load", trackPageview);
+  trackPageview();
+  if (document.readyState !== "complete") {
+    window.addEventListener("load", function () { if (!sent) trackPageview(); });
+  }
 
-  setInterval(function () { send(buildPayload("heartbeat")); }, HEARTBEAT_INTERVAL);
+  setInterval(function () { send(buildPayload("heartbeat")); }, 30000);
 
   var pushState = history.pushState;
   history.pushState = function () {
