@@ -23,9 +23,8 @@ function Wizard() {
     if (!Cookies.get("token")) router.push("/login");
     getMe().catch(() => router.push("/login"));
   }, [router]);
-  const origin = typeof window !== "undefined" ? window.location.origin : PUBLIC_ORIGIN;
   const snippet = site
-    ? `<script defer data-site="${site.api_key}" src="${origin}/tracker/femantic.js"></script>`
+    ? `<script defer data-site="${site.api_key}" src="${PUBLIC_ORIGIN}/tracker/femantic.js"></script>`
     : "";
   const create = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError("");
@@ -61,12 +60,12 @@ function Wizard() {
               {error && <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</div>}
               <div>
                 <label className="block text-sm font-semibold">Domain</label>
-                <p className="text-xs text-slate-500 mt-1 mb-2">Without www or https://</p>
-                <input required value={domain} onChange={(e) => setDomain(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-sky-500" placeholder="example.com" />
+                <p className="text-xs text-slate-500 mt-1 mb-2">Blogger: yourblog.blogspot.com ya custom domain — without https://</p>
+                <input required value={domain} onChange={(e) => setDomain(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-sky-500" placeholder="myblog.blogspot.com" />
               </div>
               <div>
                 <label className="block text-sm font-semibold">Display name (optional)</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-sky-500 mt-2" placeholder="My site" />
+                <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-sky-500 mt-2" placeholder="My blog" />
               </div>
               <div>
                 <label className="block text-sm font-semibold">Timezone</label>
@@ -80,16 +79,38 @@ function Wizard() {
           ) : (
             <div>
               <h2 className="text-center font-semibold text-lg mb-5">Tag your site</h2>
-              <p className="text-sm font-semibold">1 · Copy your script</p>
-              <p className="text-xs text-slate-500 mt-1 mb-2">Associated with {site?.domain}.</p>
+              <p className="text-sm font-semibold">1 · Copy this exact script</p>
+              <p className="text-xs text-slate-500 mt-1 mb-2">Key is tied to {site?.domain}.</p>
               <div className="relative bg-slate-50 border border-slate-200 rounded-xl p-3">
                 <button onClick={() => { navigator.clipboard.writeText(snippet); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="absolute top-2 right-2 text-xs flex items-center gap-1 text-slate-500">
                   <Copy className="w-3.5 h-3.5" /> {copied ? "Copied" : "Copy"}
                 </button>
                 <pre className="text-[11px] sm:text-xs overflow-x-auto pt-4 whitespace-pre-wrap break-all">{snippet}</pre>
               </div>
-              <p className="mt-4 text-xs text-sky-700 bg-sky-50 border-l-4 border-sky-500 p-3">Paste this script before the closing body tag on every page you want to measure.</p>
-              <Link href={`/dashboard/analytics?id=${site?.id}`} className="mt-5 w-full inline-flex justify-center bg-[#1b8fd6] text-white font-semibold rounded-lg py-3">Go to dashboard</Link>
+
+              <div className="mt-5 space-y-3 text-sm text-slate-700">
+                <p className="font-semibold text-navy-800">2 · Paste it here (pick your platform)</p>
+                <div className="border border-slate-200 rounded-xl p-3">
+                  <p className="font-semibold">Blogger</p>
+                  <ol className="list-decimal ml-5 mt-1 text-xs text-slate-600 space-y-1">
+                    <li>Blogger → Theme → <b>Edit HTML</b></li>
+                    <li>Find <code className="bg-slate-100 px-1">&lt;/body&gt;</code> (Ctrl+F)</li>
+                    <li>Paste the script <b>just above</b> <code className="bg-slate-100 px-1">&lt;/body&gt;</code></li>
+                    <li>Save theme. Open the live blog in a new tab (not only auto-refresh preview).</li>
+                  </ol>
+                  <p className="text-[11px] text-slate-500 mt-2">Alternate: Layout → add gadget “HTML/JavaScript” in footer → paste same script → Save.</p>
+                </div>
+                <div className="border border-slate-200 rounded-xl p-3">
+                  <p className="font-semibold">WordPress / HTML site</p>
+                  <p className="text-xs text-slate-600 mt-1">Paste before <code className="bg-slate-100 px-1">&lt;/body&gt;</code> in footer.php or theme footer. Not inside a post body.</p>
+                </div>
+              </div>
+
+              <p className="mt-4 text-xs bg-amber-50 border-l-4 border-amber-400 p-3 text-amber-900">
+                Realtime tab sirf <b>live pageviews</b> dikhata hai. Auto-refresh extension kabhi script skip karti hai.
+                Blog homepage manually open karo, 8 seconds wait, phir Femantic Real Time refresh.
+              </p>
+              <Link href={`/dashboard/realtime?id=${site?.id}`} className="mt-5 w-full inline-flex justify-center bg-[#1b8fd6] text-white font-semibold rounded-lg py-3">Open Real Time</Link>
             </div>
           )}
         </div>
