@@ -1,7 +1,7 @@
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.database import engine, Base, ensure_columns
 from app.routers import auth, users, websites, tracking, admin, memberships, invites, network
@@ -17,7 +17,7 @@ docs = "/docs" if settings.DEBUG else None
 app = FastAPI(
     title="Femantic API",
     description="Real-time True Traffic Analytics",
-    version="1.6.1",
+    version="1.6.2",
     docs_url=docs,
     redoc_url=docs and "/redoc",
     openapi_url="/openapi.json" if settings.DEBUG else None,
@@ -73,20 +73,26 @@ TRACKER_CANDIDATES = [
     Path(__file__).resolve().parents[2] / "tracker" / "femantic.js",
     Path("/app/static/femantic.js"),
     Path("/var/www/html/femantic/tracker/femantic.js"),
+    Path("/var/www/html/femantic/backend/static/femantic.js"),
     Path("/var/www/femantic/tracker/femantic.js"),
 ]
 
+FALLBACK_JS = "(function(){console.warn('[Femantic] tracker file missing on server');})();"
 
-def _tracker_path():
+
+def _tracker_js() -> str:
     for p in TRACKER_CANDIDATES:
-        if p.exists():
-            return p
-    return None
+        try:
+            if p.exists() and p.is_file():
+                return p.read_text(encoding="utf-8")
+        except Exception:
+            continue
+    return FALLBACK_JS
 
 
 @app.get("/")
 def root():
-    return {"message": "Femantic API", "status": "running", "version": "1.6.1"}
+    return {"message": "Femantic API", "status": "running", "version": "1.6.2"}
 
 
 @app.get("/health")
@@ -94,15 +100,24 @@ def health():
     return {"status": "healthy"}
 
 
-@app.get("/tracker/femantic.js")
-@app.get("/femantic.js")
-@app.get("/j.js")
-def tracker_script():
-    path = _tracker_path()
-    if not path:
-        return {"error": "tracker not found"}
-    return FileResponse(
-        path,
-        media_type="application/javascript",
-        headers={"Cache-Control": "public, max-age=300", "Access-Control-Allow-Origin": "*"},
+def _js_response():
+    return Response(
+        content=_tracker_js(),
+        media_type="application/javascript; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=60", "Access-Control-Allow-Origin": "*"},
     )
+
+
+@app.get("/tracker/femantic.js")
+def tracker_script():
+    return _js_response()
+
+
+@app.get("/femantic.js")
+def tracker_root():
+    return _js_response()
+
+
+@app.get("/j.js")
+def tracker_alias():
+    return _js_response()
