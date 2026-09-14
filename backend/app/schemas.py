@@ -47,6 +47,10 @@ class UserOut(BaseModel):
     is_active: bool
     parent_id: Optional[int] = None
     brand_name: Optional[str] = None
+    plan_slug: Optional[str] = "lite"
+    max_sites: Optional[int] = 1
+    max_pageviews_month: Optional[int] = 50000
+    upgrade_requested: Optional[bool] = False
     created_at: datetime
 
     class Config:
@@ -59,6 +63,9 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     role: Optional[UserRole] = None
     brand_name: Optional[str] = None
+    plan_slug: Optional[str] = None
+    max_sites: Optional[int] = None
+    max_pageviews_month: Optional[int] = None
 
 
 class WebsiteCreate(BaseModel):
@@ -76,7 +83,7 @@ class WebsiteOut(BaseModel):
     id: int
     name: str
     domain: str
-    api_key: str
+    api_key: Optional[str] = None
     public_key: Optional[str] = None
     is_active: bool
     created_at: datetime
