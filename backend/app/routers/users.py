@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.models import User
+from app.models import User, UserRole
 from app.schemas import UserOut, UserUpdate
 from app.auth import get_current_user, get_current_admin
 
@@ -37,7 +37,7 @@ def get_user(
     return user
 
 
-@router.patch("/{user_id}", response_model=UserOut)
+@router.patch("{user_id}", response_model=UserOut)
 def update_user(
     user_id: int,
     user_update: UserUpdate,
@@ -49,6 +49,11 @@ def update_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     update_data = user_update.model_dump(exclude_unset=True)
+    if update_data.get("role") == UserRole.ADMIN or str(update_data.get("role")) == "admin":
+        raise HTTPException(status_code=400, detail="Cannot promote anyone to admin")
+    if user.role == UserRole.ADMIN and "role" in update_data:
+        raise HTTPException(status_code=400, detail="Cannot change admin role")
+
     for field, value in update_data.items():
         setattr(user, field, value)
 
@@ -66,7 +71,7 @@ def delete_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if user.role.value == "admin":
+    if user.role == UserRole.ADMIN:
         raise HTTPException(status_code=400, detail="Cannot delete admin user")
     db.delete(user)
     db.commit()
