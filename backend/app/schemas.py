@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -87,7 +87,8 @@ class WebsiteOut(BaseModel):
 
 
 class TrackEvent(BaseModel):
-    path: str
+    model_config = ConfigDict(extra="ignore")
+    path: str = "/"
     title: Optional[str] = None
     referrer: Optional[str] = None
     user_agent: Optional[str] = None
@@ -98,6 +99,7 @@ class TrackEvent(BaseModel):
     screen_width: Optional[int] = None
     screen_height: Optional[int] = None
     device: Optional[str] = None
+    hostname: Optional[str] = None
     utm_source: Optional[str] = None
     utm_medium: Optional[str] = None
     utm_campaign: Optional[str] = None
