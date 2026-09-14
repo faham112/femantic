@@ -1,10 +1,9 @@
-from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.database import engine, Base, ensure_columns
-from app.routers import auth, users, websites, tracking, admin, memberships, invites, network
+from app.routers import auth, users, websites, tracking, admin, memberships, invites, network, plans
 from app.websocket import realtime
 from app.seed import seed_admin
 from app.config import settings
@@ -14,7 +13,7 @@ ensure_columns()
 seed_admin()
 
 docs = "/docs" if settings.DEBUG else None
-app = FastAPI(title="Femantic API", version="1.6.3", docs_url=docs, redoc_url=docs and "/redoc", openapi_url="/openapi.json" if settings.DEBUG else None)
+app = FastAPI(title="Femantic API", version="1.7.0", docs_url=docs, redoc_url=docs and "/redoc", openapi_url="/openapi.json" if settings.DEBUG else None)
 
 app.add_middleware(
     CORSMiddleware,
@@ -69,11 +68,12 @@ app.include_router(network.router)
 app.include_router(admin.router)
 app.include_router(memberships.router)
 app.include_router(invites.router)
+app.include_router(plans.router)
 app.include_router(realtime.router)
 
 @app.get("/")
 def root():
-    return {"message": "Femantic API", "status": "running", "version": "1.6.3"}
+    return {"message": "Femantic API", "status": "running", "version": "1.7.0"}
 
 @app.get("/health")
 def health():
