@@ -4,9 +4,10 @@ from typing import List
 import secrets
 
 from app.database import get_db
-from app.models import User, Website, MembershipStatus, UserRole, ClientWebsiteAccess
+from app.models import User, Website, UserRole, ClientWebsiteAccess
 from app.schemas import WebsiteCreate, WebsiteOut, WebsiteUpdate
 from app.auth import get_current_user, get_current_pro_or_admin, user_can_access_website
+from app.plan_svc import quota_payload
 
 router = APIRouter(prefix="/api/websites", tags=["Websites"])
 
@@ -17,6 +18,19 @@ def generate_api_key() -> str:
 
 def generate_public_key() -> str:
     return secrets.token_urlsafe(10).replace("-", "").replace("_", "").lower()[:16]
+
+
+def _out(w: Website, hide_key: bool) -> WebsiteOut:
+    return WebsiteOut(
+        id=w.id,
+        name=w.name,
+        domain=w.domain,
+        api_key=None if hide_key else w.api_key,
+        public_key=w.public_key,
+        is_active=w.is_active,
+        created_at=w.created_at,
+        owner_id=w.owner_id,
+    )
 
 
 def ensure_public_key(db: Session, website: Website) -> Website:
@@ -44,10 +58,12 @@ def create_website(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_pro_or_admin),
 ):
-    if current_user.membership == MembershipStatus.FREE and current_user.role != UserRole.ADMIN:
-        count = db.query(Website).filter(Website.owner_id == current_user.id).count()
-        if count >= 3:
-            raise HTTPException(status_code=403, detail="Free plan limited to 3 websites. Upgrade to Premium for unlimited.")
+    q = quota_payload(db, current_user)
+    if current_user.role != UserRole.ADMIN and q["over_sites"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Site limit reached ({q['used_sites']}/{q['max_sites']}). Upgrade your plan or ask admin.",
+        )
 
     domain = website_in.domain.lower().strip().replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0]
     website = Website(
@@ -61,7 +77,7 @@ def create_website(
     db.add(website)
     db.commit()
     db.refresh(website)
-    return website
+    return _out(website, False)
 
 
 @router.get("/", response_model=List[WebsiteOut])
@@ -69,6 +85,7 @@ def list_my_websites(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    hide = current_user.role == UserRole.CLIENT
     if current_user.role == UserRole.ADMIN:
         rows = db.query(Website).order_by(Website.id.desc()).all()
     elif current_user.role == UserRole.CLIENT:
@@ -86,7 +103,7 @@ def list_my_websites(
         db.commit()
         for w in rows:
             db.refresh(w)
-    return rows
+    return [_out(w, hide) for w in rows]
 
 
 @router.get("/{website_id}", response_model=WebsiteOut)
@@ -100,7 +117,7 @@ def get_website(
     website = db.query(Website).filter(Website.id == website_id).first()
     if not website:
         raise HTTPException(status_code=404, detail="Website not found")
-    return ensure_public_key(db, website)
+    return _out(ensure_public_key(db, website), current_user.role == UserRole.CLIENT)
 
 
 @router.patch("/{website_id}", response_model=WebsiteOut)
@@ -119,7 +136,7 @@ def update_website(
         website.is_active = body.is_active
     db.commit()
     db.refresh(website)
-    return website
+    return _out(website, False)
 
 
 @router.post("/{website_id}/rotate-key", response_model=WebsiteOut)
@@ -132,7 +149,7 @@ def rotate_key(
     website.api_key = generate_api_key()
     db.commit()
     db.refresh(website)
-    return website
+    return _out(website, False)
 
 
 @router.delete("/{website_id}", status_code=204)
