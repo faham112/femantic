@@ -8,6 +8,7 @@ import {
   LineChart, Settings, HelpCircle, Menu, X, LogOut, Globe, ChevronDown, Shield, Home,
 } from "lucide-react";
 import { clearTokens } from "@/lib/api";
+import QuotaMeter from "@/components/QuotaMeter";
 
 type Website = { id: number; name: string; domain: string };
 type User = { email: string; role: string; full_name?: string; brand_name?: string };
@@ -20,6 +21,7 @@ export default function AppShell({
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [picker, setPicker] = useState(false);
+  const [account, setAccount] = useState(false);
   const siteId = searchParams.get("id");
   const dim = searchParams.get("dim");
   const view = searchParams.get("view");
@@ -40,6 +42,7 @@ export default function AppShell({
   };
 
   const isProOrAdmin = user?.role === "admin" || user?.role === "pro";
+  const isClient = user?.role === "client";
   const onRealtime = pathname.startsWith("/dashboard/realtime");
   const Sidebar = (
     <aside className="flex flex-col h-full bg-white border-r border-slate-200 w-[240px] min-w-[240px]">
@@ -48,7 +51,7 @@ export default function AppShell({
           <BarChart3 className="w-4 h-4 text-white" />
         </div>
         <span className="font-bold text-navy-800 tracking-tight">
-          {user?.role === "client" && user?.brand_name ? user.brand_name : "Femantic"}
+          {isClient && user?.brand_name ? user.brand_name : "Femantic"}
         </span>
       </Link>
       <nav className="flex-1 overflow-y-auto py-2 px-2 text-[13px]">
@@ -58,7 +61,6 @@ export default function AppShell({
         <Group icon={Radio} label="Real Time" openDefault={onRealtime}>
           <Sub href={href("/dashboard/realtime")} label="Overview" active={onRealtime && view !== "sources"} close={() => setOpen(false)} />
           <Sub href={href("/dashboard/realtime", "&view=sources")} label="Sources" active={onRealtime && view === "sources"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/content")} label="Content" active={pathname.startsWith("/dashboard/content")} close={() => setOpen(false)} />
           <Sub href={href("/dashboard/report", "&dim=country")} label="Country" active={dim === "country"} close={() => setOpen(false)} />
         </Group>
 
@@ -101,12 +103,13 @@ export default function AppShell({
         </Group>
 
         <div className="h-px bg-slate-100 my-2" />
-        {isProOrAdmin && <Link href={href("/dashboard/invites")} onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50"><Shield className="w-4 h-4" /> Invites</Link>}
+        {isProOrAdmin && !isClient && <Link href={href("/dashboard/invites")} onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50"><Shield className="w-4 h-4" /> Invites</Link>}
         {user?.role === "admin" && <Link href="/admin" onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50"><Users className="w-4 h-4" /> Admin</Link>}
         <Link href="/dashboard/settings" onClick={() => setOpen(false)} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${pathname.startsWith("/dashboard/settings") ? "bg-sky-50 text-navy-700 font-medium" : "text-slate-600 hover:bg-slate-50"}`}><Settings className="w-4 h-4" /> Settings</Link>
       </nav>
       <div className="p-3 border-t border-slate-100">
         <Link href="/dashboard/plan" className="block text-center text-xs font-semibold bg-navy-700 text-white rounded-lg py-2.5 hover:bg-navy-600">Plan Management</Link>
+        <QuotaMeter hidden={isClient} />
       </div>
     </aside>
   );
@@ -127,7 +130,7 @@ export default function AppShell({
               {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div className="relative">
-              <button onClick={() => setPicker((v) => !v)} className="flex items-center gap-2 max-w-[160px] sm:max-w-xs px-2.5 py-1.5 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">
+              <button onClick={() => { setPicker((v) => !v); setAccount(false); }} className="flex items-center gap-2 max-w-[160px] sm:max-w-xs px-2.5 py-1.5 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">
                 <Globe className="w-4 h-4 text-navy-600 shrink-0" />
                 <span className="truncate font-medium text-slate-800">{current?.domain || current?.name || "Select site"}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -142,18 +145,37 @@ export default function AppShell({
                       <div className="text-xs text-slate-500 truncate">{w.domain}</div>
                     </button>
                   ))}
-                  {isProOrAdmin && (
+                  {isProOrAdmin && !isClient && (
                     <Link href="/dashboard/sites/new" onClick={() => setPicker(false)} className="block px-3 py-2 text-sm text-navy-700 font-medium border-t border-slate-100">+ Activate new site</Link>
                   )}
                 </div>
               )}
             </div>
             <Link href="/dashboard/network" className="hidden sm:inline px-2 py-1 rounded-md bg-sky-50 text-navy-700 font-medium text-xs">Network</Link>
-            <div className="ml-auto flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-navy-700 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                {(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
-              </div>
-              <button onClick={logout} className="p-2 text-slate-500 hover:text-red-500" aria-label="Logout"><LogOut className="w-4 h-4" /></button>
+            <div className="ml-auto relative">
+              <button onClick={() => { setAccount((v) => !v); setPicker(false); }} className="flex items-center gap-2 rounded-lg px-1 py-1 hover:bg-slate-50">
+                <div className="w-8 h-8 rounded-full bg-navy-700 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                  {(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
+                </div>
+                <div className="hidden sm:block text-left min-w-0">
+                  <div className="text-xs font-semibold text-navy-800 truncate max-w-[140px]">{user?.full_name || "Account"}</div>
+                  <div className="text-[10px] text-slate-400 truncate max-w-[140px]">{user?.email}</div>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+              </button>
+              {account && (
+                <div className="absolute right-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50 text-sm">
+                  <div className="px-3 py-2 border-b border-slate-100">
+                    <div className="font-medium text-navy-800 truncate">{user?.full_name || "User"}</div>
+                    <div className="text-[11px] text-slate-500 truncate">{user?.email}</div>
+                    <div className="text-[10px] uppercase text-slate-400 mt-0.5">{user?.role}</div>
+                  </div>
+                  <Link href="/dashboard/settings" onClick={() => setAccount(false)} className="block px-3 py-2 hover:bg-slate-50">Settings</Link>
+                  <Link href="/dashboard/plan" onClick={() => setAccount(false)} className="block px-3 py-2 hover:bg-slate-50">Plan</Link>
+                  {user?.role === "admin" && <Link href="/admin" onClick={() => setAccount(false)} className="block px-3 py-2 hover:bg-slate-50">Admin panel</Link>}
+                  <button onClick={logout} className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50">Log out</button>
+                </div>
+              )}
             </div>
           </div>
           <div className="px-3 sm:px-5 h-9 flex items-center text-[13px] text-slate-500 border-t border-slate-100">{title}</div>
