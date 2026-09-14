@@ -49,6 +49,10 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     parent_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     brand_name = Column(String(255), nullable=True)
+    plan_slug = Column(String(32), default="lite")
+    max_sites = Column(Integer, default=1)
+    max_pageviews_month = Column(Integer, default=50000)
+    upgrade_requested = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -61,6 +65,15 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+
+
+class PlanConfig(Base):
+    __tablename__ = "plan_config"
+    id = Column(Integer, primary_key=True)
+    lite_max_sites = Column(Integer, default=1)
+    lite_max_pageviews = Column(Integer, default=50000)
+    pro_max_sites = Column(Integer, default=20)
+    pro_max_pageviews = Column(Integer, default=2000000)
 
 
 class Website(Base):
