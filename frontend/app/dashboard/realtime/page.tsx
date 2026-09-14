@@ -11,6 +11,7 @@ function RealtimeInner() {
   const router = useRouter();
   const params = useSearchParams();
   const websiteId = params.get("id");
+  const view = params.get("view");
   const [user, setUser] = useState<any>(null);
   const [sites, setSites] = useState<any[]>([]);
   const [live, setLive] = useState<any>(null);
@@ -54,13 +55,14 @@ function RealtimeInner() {
     `${r.source} ${r.medium}`.toLowerCase().includes(q.toLowerCase())
   ).slice(0, limit);
   const col2 = tab === "content" ? "Content" : tab === "country" ? "Country" : "Medium";
+  const isSources = view === "sources";
 
   return (
-    <AppShell user={user} websites={sites} title="Real Time / Sources">
-      <div className="max-w-xl lg:max-w-none mx-auto space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-[13px] text-slate-500">Real Time <span className="text-navy-700 font-medium">/ Sources</span></div>
-          <div className="flex gap-1">
+    <AppShell user={user} websites={sites} title={isSources ? "Real Time / Sources" : "Real Time / Overview"}>
+      <div className="w-full max-w-[1400px] mx-auto space-y-3 lg:space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="text-[13px] text-slate-500">Real Time <span className="text-navy-700 font-medium">/ {isSources ? "Sources" : "Overview"}</span></div>
+          <div className="flex flex-wrap gap-1">
             <span className="text-xs bg-navy-700 text-white rounded-full px-3 py-1">Active users</span>
             <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="text-xs bg-white border border-slate-200 rounded-full px-2 py-1">
               <option value={5}>5 minutes</option>
@@ -69,73 +71,77 @@ function RealtimeInner() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-card text-center">
-          <div className="text-sm text-slate-500">In the last {minutes} minutes</div>
-          <div className="text-6xl font-bold text-navy-800 mt-2 leading-none">{live?.live_visitors ?? 0}</div>
-          <div className="text-sm text-slate-500 mt-2">Active Users</div>
-          <div className="mt-5 flex justify-center gap-8 text-xs text-slate-600">
-            <span className="flex items-center gap-1"><Smartphone className="w-4 h-4 text-navy-700" /> Mobile {m}%</span>
-            <span className="flex items-center gap-1"><Tablet className="w-4 h-4 text-purple-600" /> Tablet {t}%</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-card">
-          <div className="text-sm font-semibold text-slate-700 mb-1">Pageviews - Last 30 minutes</div>
-          <div className="h-28"><MiniBars values={live?.minute_series?.length ? live.minute_series : Array(30).fill(1)} color="#7dd3fc" /></div>
-          <div className="flex justify-between text-[10px] text-slate-400 mt-1"><span>-29m</span><span>-2m</span></div>
-        </div>
-
-        <div className="bg-[#0d4f7a] text-white rounded-2xl p-4 shadow-card">
-          <div className="text-sm font-semibold text-white/85 mb-2">Pageviews - Last minute</div>
-          <MiniBars values={live?.last_minute_series?.length ? live.last_minute_series : Array(12).fill(2)} color="#ffffff" />
-          <div className="flex justify-between text-[10px] text-white/50 mt-1"><span>-60s</span><span>-5s</span></div>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {([["source", "Source"], ["content", "Sources + Content"], ["country", "Source + Country"]] as const).map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k)} className={`shrink-0 px-3 py-1.5 text-xs rounded-full border ${tab === k ? "bg-navy-700 text-white border-navy-700" : "bg-white border-slate-200"}`}>{l}</button>
-          ))}
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-card">
-          <div className="bg-[#0d4f7a] text-white px-4 py-2.5 text-sm font-semibold">Source / Medium</div>
-          <div className="px-3 py-2 flex gap-2 border-b border-slate-100">
-            <select value={limit} onChange={(e) => setLimit(Number(e.target.value))} className="text-xs border border-slate-200 rounded-md px-2 py-1">
-              <option value={10}>10 entries</option>
-              <option value={20}>20 entries</option>
-              <option value={40}>40 entries</option>
-            </select>
-            <div className="relative flex-1">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1.5" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Source/Medium" className="w-full border border-slate-200 rounded-md pl-7 pr-2 py-1 text-xs" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-card text-center">
+            <div className="text-sm text-slate-500">In the last {minutes} minutes</div>
+            <div className="text-5xl sm:text-6xl font-bold text-navy-800 mt-2 leading-none">{live?.live_visitors ?? 0}</div>
+            <div className="text-sm text-slate-500 mt-2">Active Users</div>
+            <div className="mt-5 flex justify-center gap-6 sm:gap-8 text-xs text-slate-600">
+              <span className="flex items-center gap-1"><Smartphone className="w-4 h-4 text-navy-700" /> Mobile {m}%</span>
+              <span className="flex items-center gap-1"><Tablet className="w-4 h-4 text-purple-600" /> Tablet {t}%</span>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[480px]">
-              <thead className="text-left text-xs text-slate-500 border-b border-slate-100">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Source</th>
-                  <th className="px-3 py-2 font-medium">{col2}</th>
-                  <th className="px-3 py-2 font-medium w-24">Active Users</th>
-                  <th className="px-3 py-2 font-medium w-24">Percentage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r: any, i: number) => (
-                  <tr key={i} className="border-t border-slate-100">
-                    <td className="px-3 py-2 truncate max-w-[140px]"><Link2 className="w-3.5 h-3.5 inline mr-1 text-slate-400" />{r.source}</td>
-                    <td className="px-3 py-2 truncate max-w-[160px]">{r.medium}</td>
-                    <td className="px-3 py-2 font-semibold">{r.users}</td>
-                    <td className="px-3 py-2 text-slate-500">{r.pct}%</td>
-                  </tr>
-                ))}
-                {!filtered.length && (
-                  <tr><td colSpan={4} className="px-4 py-10 text-center text-slate-400 text-sm">No live sources in this window</td></tr>
-                )}
-              </tbody>
-            </table>
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-card">
+            <div className="text-sm font-semibold text-slate-700 mb-1">Pageviews - Last 30 minutes</div>
+            <div className="h-24 sm:h-28"><MiniBars values={live?.minute_series?.length ? live.minute_series : Array(30).fill(1)} color="#7dd3fc" /></div>
+            <div className="flex justify-between text-[10px] text-slate-400 mt-1"><span>-29m</span><span>-2m</span></div>
+          </div>
+          <div className="bg-[#0d4f7a] text-white rounded-2xl p-4 shadow-card">
+            <div className="text-sm font-semibold text-white/85 mb-2">Pageviews - Last minute</div>
+            <MiniBars values={live?.last_minute_series?.length ? live.last_minute_series : Array(12).fill(2)} color="#ffffff" />
+            <div className="flex justify-between text-[10px] text-white/50 mt-1"><span>-60s</span><span>-5s</span></div>
           </div>
         </div>
+
+        {(isSources || true) && (
+          <>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {([["source", "Source"], ["content", "Sources + Content"], ["country", "Source + Country"]] as const).map(([k, l]) => (
+                <button key={k} onClick={() => setTab(k)} className={`shrink-0 px-3 py-1.5 text-xs rounded-full border ${tab === k ? "bg-navy-700 text-white border-navy-700" : "bg-white border-slate-200"}`}>{l}</button>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-card">
+              <div className="bg-[#0d4f7a] text-white px-4 py-2.5 text-sm font-semibold">Source / Medium</div>
+              <div className="px-3 py-2 flex flex-col sm:flex-row gap-2 border-b border-slate-100">
+                <select value={limit} onChange={(e) => setLimit(Number(e.target.value))} className="text-xs border border-slate-200 rounded-md px-2 py-1 w-fit">
+                  <option value={10}>10 entries</option>
+                  <option value={20}>20 entries</option>
+                  <option value={40}>40 entries</option>
+                </select>
+                <div className="relative flex-1 min-w-0">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1.5" />
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Source/Medium" className="w-full border border-slate-200 rounded-md pl-7 pr-2 py-1 text-xs" />
+                </div>
+              </div>
+              <div className="table-scroll">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-xs text-slate-500 border-b border-slate-100">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Source</th>
+                      <th className="px-3 py-2 font-medium">{col2}</th>
+                      <th className="px-3 py-2 font-medium w-24">Active Users</th>
+                      <th className="px-3 py-2 font-medium w-24">Percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((r: any, i: number) => (
+                      <tr key={i} className="border-t border-slate-100">
+                        <td className="px-3 py-2 truncate max-w-[160px]"><Link2 className="w-3.5 h-3.5 inline mr-1 text-slate-400" />{r.source}</td>
+                        <td className="px-3 py-2 truncate max-w-[180px]">{r.medium}</td>
+                        <td className="px-3 py-2 font-semibold">{r.users}</td>
+                        <td className="px-3 py-2 text-slate-500">{r.pct}%</td>
+                      </tr>
+                    ))}
+                    {!filtered.length && (
+                      <tr><td colSpan={4} className="px-4 py-10 text-center text-slate-400 text-sm">No live sources in this window</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </AppShell>
   );

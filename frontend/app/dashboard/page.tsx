@@ -95,30 +95,30 @@ function DashboardInner() {
   return (
     <AppShell user={user} websites={websites} title="Dashboard">
       {!websites.length ? (
-        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 text-center max-w-lg mx-auto">
           <h2 className="text-lg font-semibold text-navy-800">Activate your first site</h2>
           <Link href="/dashboard/sites/new" className="inline-flex mt-5 bg-navy-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg">Activate your site</Link>
         </div>
       ) : (
-        <div className="max-w-xl lg:max-w-none mx-auto space-y-3">
-          <div className="flex items-center justify-between text-[13px] text-slate-500">
-            <span className="flex items-center gap-1 font-medium text-slate-700">Dashboard</span>
-            <button onClick={() => setPicker((v) => !v)} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-navy-800">
+        <div className="w-full max-w-[1400px] mx-auto">
+          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 mb-3">
+            <span className="text-[13px] font-medium text-slate-700">Dashboard</span>
+            <button onClick={() => setPicker((v) => !v)} className="self-start xs:self-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-navy-800">
               {fmtDate(start)} → {fmtDate(end)} <Calendar className="w-3.5 h-3.5 text-navy-700" />
             </button>
           </div>
 
           {picker && (
-            <div className="bg-[#0d4f7a] text-white rounded-2xl p-4 shadow-card">
-              <div className="flex items-center justify-between mb-3">
+            <div className="bg-[#0d4f7a] text-white rounded-2xl p-4 shadow-card mb-3 max-w-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                 <div className="font-semibold">Date range selector</div>
-                <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="bg-white text-navy-800 text-xs rounded-full px-3 py-1.5 font-medium">
+                <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="bg-white text-navy-800 text-xs rounded-full px-3 py-1.5 font-medium w-fit">
                   <option value={7}>Last 7 days</option>
                   <option value={14}>Last 14 days</option>
                   <option value={30}>Last 30 days</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <label className="text-[11px] text-white/80">Start date
                   <input type="date" value={iso(start)} readOnly className="mt-1 w-full rounded-lg px-3 py-2 text-navy-800 text-sm" />
                 </label>
@@ -136,104 +136,101 @@ function DashboardInner() {
             </div>
           )}
 
-          <section className="bg-[#0d4f7a] text-white rounded-2xl p-4 shadow-card">
-            <div className="text-sm text-white/80">Active Users in the last 5 minutes</div>
-            <div className="text-5xl font-bold leading-none mt-1">{live?.live_visitors ?? 0}</div>
-            <div className="text-[11px] text-white/70 mt-3 mb-1">Pageviews per Minute</div>
-            <MiniBars values={liveBars} />
-            <div className="flex justify-between text-[11px] text-white/50 mt-1"><span>-29m</span><span>-2m</span></div>
-            <div className="mt-4 flex justify-between text-xs text-white/70 mb-1"><span>Main Active Pages</span><span>Active Users</span></div>
-            {(live?.top_pages_live || stats?.top_pages || []).slice(0, 5).map((p: any) => (
-              <div key={p.path} className="flex justify-between text-sm py-2 border-b border-white/10">
-                <span className="truncate pr-3">{p.path}</span><span className="font-semibold">{p.views}</span>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 lg:gap-4">
+            <div className="xl:col-span-2 space-y-3 lg:space-y-4 min-w-0">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+                <Kpi label="Users" value={users.toLocaleString()} sub={vsPrev(users, stats?.previous_users || 0)} navy />
+                <Kpi label="Sessions" value={sessions.toLocaleString()} sub={vsPrev(sessions, stats?.previous_sessions || 0)} />
+                <Kpi label="Pageviews" value={pageviews.toLocaleString()} sub={vsPrev(pageviews, stats?.previous_pageviews || 0)} navy />
+                <Kpi label="Bounce Rate" value={`${bounce}%`} sub={vsPrev(bounce, stats?.previous_bounce || 0)} />
+                <Kpi label="Session Duration" value={dur} sub="avg" navy className="col-span-2 sm:col-span-1" />
               </div>
-            ))}
-            {activeId && (
-              <Link href={`/dashboard/realtime${q}`} className="mt-4 w-full inline-flex items-center justify-center gap-1 bg-white/20 hover:bg-white/30 rounded-full py-2.5 text-sm font-medium">
-                Real Time Data <ArrowRight className="w-4 h-4" />
-              </Link>
-            )}
-          </section>
 
-          <Kpi label="Users" value={users.toLocaleString()} sub={vsPrev(users, stats?.previous_users || 0)} navy />
-          <Kpi label="Sessions" value={sessions.toLocaleString()} sub={vsPrev(sessions, stats?.previous_sessions || 0)} />
-          <Kpi label="Pageviews" value={pageviews.toLocaleString()} sub={vsPrev(pageviews, stats?.previous_pageviews || 0)} navy />
-          <Kpi label="Bounce Rate" value={`${bounce}%`} sub={vsPrev(bounce, stats?.previous_bounce || 0)} />
-          <Kpi label="Session Duration" value={dur} sub="avg" navy />
+              <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-card">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-slate-700">Users</span>
+                  <span className="text-[11px] text-slate-400">{compare ? "vs previous period" : ""}</span>
+                </div>
+                <div className="h-[180px] sm:h-[220px] lg:h-[260px]"><DualLineChart current={series.current} previous={compare ? series.previous : []} /></div>
+              </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-card">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-slate-700">Users</span>
-              <span className="text-[11px] text-slate-400">{compare ? "vs previous period" : ""}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+                <ListCard title="Top Pages" right="Pageviews" rows={(stats?.top_pages || []).map((p: any) => [p.path, p.views])} href={`/dashboard/content${q}`} more="View all Pages" />
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-card">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Devices (Users)</h3>
+                  <Donut segments={deviceSegs.every((s) => s.value === 0) ? [{ label: "No data", value: 1, color: "#cbd5e1" }] : deviceSegs} />
+                  {activeId && <Link href={`/dashboard/report${q}&dim=device`} className="mt-3 block text-center text-sm text-navy-700 font-medium">View all Audience Devices →</Link>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+                <ListCard title="Referrer + Source" right="Pageviews" rows={(stats?.top_referrers || []).map((r: any) => [r.referrer || "(direct)", r.views])} href={`/dashboard/report${q}&dim=referrer_source`} more="View all Referrer + Source" />
+                <ListCard title="Country" right="Users" rows={countries.map((c: any) => [`${FLAGS[c.label] || "🌐"}  ${c.label}`, c.views, c.pct])} href={`/dashboard/report${q}&dim=country`} more="View all Countries" showPct />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+                <ListCard title="Browsers" right="Pageviews" rows={browsers.map((b: any) => [b.label, b.views, b.pct])} href={`/dashboard/report${q}&dim=browser`} more="View all Browsers" showPct />
+                <EmptyCard title="Events" right="Hits" empty={!events.length} rows={events.map((e: any) => [e.name, e.count])} href={`/dashboard/events${q}`} more="View all Events" />
+              </div>
             </div>
-            <div className="h-[200px]"><DualLineChart current={series.current} previous={compare ? series.previous : []} /></div>
+
+            <div className="space-y-3 lg:space-y-4 min-w-0">
+              <section className="bg-[#0d4f7a] text-white rounded-2xl p-4 shadow-card">
+                <div className="text-sm text-white/80">Active Users in the last 5 minutes</div>
+                <div className="text-4xl sm:text-5xl font-bold leading-none mt-1">{live?.live_visitors ?? 0}</div>
+                <div className="text-[11px] text-white/70 mt-3 mb-1">Pageviews per Minute</div>
+                <MiniBars values={liveBars} />
+                <div className="flex justify-between text-[11px] text-white/50 mt-1"><span>-29m</span><span>-2m</span></div>
+                <div className="mt-4 flex justify-between text-xs text-white/70 mb-1"><span>Main Active Pages</span><span>Active Users</span></div>
+                {(live?.top_pages_live || stats?.top_pages || []).slice(0, 6).map((p: any) => (
+                  <div key={p.path} className="flex justify-between text-sm py-2 border-b border-white/10 gap-2">
+                    <span className="truncate pr-2">{p.path}</span><span className="font-semibold shrink-0">{p.views}</span>
+                  </div>
+                ))}
+                {activeId && (
+                  <Link href={`/dashboard/realtime${q}`} className="mt-4 w-full inline-flex items-center justify-center gap-1 bg-white/20 hover:bg-white/30 rounded-full py-2.5 text-sm font-medium">
+                    Real Time Data <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
+              </section>
+              <EmptyCard title="Custom Dimensions" right="Pageviews" empty />
+            </div>
           </div>
-
-          <ListCard title="Top Pages" right="Pageviews" rows={(stats?.top_pages || []).map((p: any) => [p.path, p.views])} href={`/dashboard/content${q}`} more="View all Pages" />
-
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-card">
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">Devices (Users)</h3>
-            <Donut segments={deviceSegs.every((s) => s.value === 0) ? [{ label: "No data", value: 1, color: "#cbd5e1" }] : deviceSegs} />
-            {activeId && <Link href={`/dashboard/report${q}&dim=device`} className="mt-3 block text-center text-sm text-navy-700 font-medium">View all Audience Devices →</Link>}
-          </div>
-
-          <ListCard title="Referrer + Source" right="Pageviews" rows={(stats?.top_referrers || []).map((r: any) => [r.referrer || "(direct)", r.views])} href={`/dashboard/report${q}&dim=referrer_source`} more="View all Referrer + Source" />
-
-          <ListCard
-            title="Country"
-            right="Users"
-            rows={countries.map((c: any) => [`${FLAGS[c.label] || "🌐"}  ${c.label}`, c.views, c.pct])}
-            href={`/dashboard/report${q}&dim=country`}
-            more="View all Countries"
-            showPct
-          />
-
-          <ListCard
-            title="Browsers"
-            right="Pageviews"
-            rows={browsers.map((b: any) => [b.label, b.views, b.pct])}
-            href={`/dashboard/report${q}&dim=browser`}
-            more="View all Browsers"
-            showPct
-          />
-
-          <EmptyCard title="Events" right="Hits" empty={!events.length} rows={events.map((e: any) => [e.name, e.count])} href={`/dashboard/events${q}`} more="View all Events" />
-          <EmptyCard title="Custom Dimensions" right="Pageviews" empty />
         </div>
       )}
     </AppShell>
   );
 }
 
-function Kpi({ label, value, sub, navy }: { label: string; value: string; sub?: string; navy?: boolean }) {
+function Kpi({ label, value, sub, navy, className = "" }: { label: string; value: string; sub?: string; navy?: boolean; className?: string }) {
   return (
-    <div className={`rounded-2xl p-4 shadow-card ${navy ? "bg-[#0d4f7a] text-white" : "bg-white border border-slate-200"}`}>
-      <div className={`text-sm ${navy ? "text-white/80" : "text-slate-500"}`}>{label}</div>
-      <div className="text-3xl font-bold mt-1 tracking-tight">{value}</div>
-      {sub && <div className={`text-xs mt-1 ${navy ? "text-white/60" : "text-slate-400"}`}>{sub}</div>}
+    <div className={`rounded-2xl p-3 sm:p-4 shadow-card min-w-0 ${navy ? "bg-[#0d4f7a] text-white" : "bg-white border border-slate-200"} ${className}`}>
+      <div className={`text-[11px] sm:text-sm truncate ${navy ? "text-white/80" : "text-slate-500"}`}>{label}</div>
+      <div className="text-xl sm:text-2xl lg:text-3xl font-bold mt-1 tracking-tight truncate">{value}</div>
+      {sub && <div className={`text-[10px] sm:text-xs mt-1 truncate ${navy ? "text-white/60" : "text-slate-400"}`}>{sub}</div>}
     </div>
   );
 }
 
 function ListCard({ title, right, rows, href, more, showPct }: { title: string; right: string; rows: any[]; href?: string; more?: string; showPct?: boolean }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-card">
-      <div className="bg-[#0d4f7a] text-white px-4 py-2.5 text-sm font-semibold flex justify-between">
-        <span className="flex items-center gap-1">{title} <ChevronDown className="w-3.5 h-3.5 opacity-70" /></span>
-        <span className="text-white/80 font-normal">{right}</span>
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-card min-w-0">
+      <div className="bg-[#0d4f7a] text-white px-3 sm:px-4 py-2.5 text-sm font-semibold flex justify-between gap-2">
+        <span className="flex items-center gap-1 truncate">{title} <ChevronDown className="w-3.5 h-3.5 opacity-70 shrink-0" /></span>
+        <span className="text-white/80 font-normal shrink-0">{right}</span>
       </div>
       <ul className="divide-y divide-slate-100">
         {rows.slice(0, 8).map((r, i) => (
-          <li key={i} className="px-4 py-2.5 flex justify-between text-sm gap-3">
-            <span className="truncate text-slate-700">{r[0]}</span>
-            <span className="font-semibold text-slate-900 whitespace-nowrap">
+          <li key={i} className="px-3 sm:px-4 py-2.5 flex justify-between text-sm gap-3">
+            <span className="truncate text-slate-700 min-w-0">{r[0]}</span>
+            <span className="font-semibold text-slate-900 whitespace-nowrap shrink-0">
               {Number(r[1]).toLocaleString()}{showPct && r[2] != null ? <span className="text-slate-400 font-normal text-xs ml-1">({r[2]}%)</span> : null}
             </span>
           </li>
         ))}
         {!rows.length && <li className="px-4 py-8 text-sm text-slate-400 text-center">Waiting for traffic…</li>}
       </ul>
-      {href && more && <Link href={href} className="block text-center text-sm text-navy-700 font-medium py-3 border-t border-slate-100">{more} →</Link>}
+      {href && more && <Link href={href} className="block text-center text-sm text-navy-700 font-medium py-3 border-t border-slate-100 px-2">{more} →</Link>}
     </div>
   );
 }
@@ -241,12 +238,12 @@ function ListCard({ title, right, rows, href, more, showPct }: { title: string; 
 function EmptyCard({ title, right, empty, rows = [], href, more }: { title: string; right: string; empty?: boolean; rows?: any[]; href?: string; more?: string }) {
   if (!empty && rows.length) return <ListCard title={title} right={right} rows={rows} href={href} more={more} />;
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-card">
-      <div className="bg-[#0d4f7a] text-white px-4 py-2.5 text-sm font-semibold flex justify-between">
-        <span>{title}</span><span className="font-normal text-white/80">{right}</span>
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-card min-w-0">
+      <div className="bg-[#0d4f7a] text-white px-4 py-2.5 text-sm font-semibold flex justify-between gap-2">
+        <span className="truncate">{title}</span><span className="font-normal text-white/80 shrink-0">{right}</span>
       </div>
-      <div className="py-14 flex flex-col items-center text-slate-400">
-        <WifiOff className="w-12 h-12 mb-3 opacity-40" />
+      <div className="py-12 sm:py-14 flex flex-col items-center text-slate-400">
+        <WifiOff className="w-10 h-10 sm:w-12 sm:h-12 mb-3 opacity-40" />
         <div className="text-sm">No Traffic Detected</div>
       </div>
     </div>
