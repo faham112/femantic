@@ -24,6 +24,9 @@ if [[ "$(git status --porcelain)" != "" ]]; then
     exit 1
 fi
 
+log "Stopping frontend so .next wipe cannot 400 live chunks"
+sudo -n systemctl stop femantic-frontend.service || true
+
 log "Pulling origin/${BRANCH}"
 git pull --ff-only origin "$BRANCH"
 
