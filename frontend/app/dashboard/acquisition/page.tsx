@@ -62,7 +62,7 @@ function Inner() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {BLOCKS.map(([dim, title]) => (
-          <Box key={dim} title={title} href={id ? `/dashboard/report?id=${id}&dim=${dim}` : "#"} rows={(tables[dim] || []).map((r: any) => [r.label, r.views])} />
+          <Box key={dim} title={title} href={id ? `/dashboard/report/${dim}?id=${id}` : `/dashboard/report/${dim}`} rows={(tables[dim] || []).map((r: any) => [r.label, r.views])} />
         ))}
       </div>
     </AppShell>

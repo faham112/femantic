@@ -25,7 +25,9 @@ function RealtimeInner() {
   const router = useRouter();
   const params = useSearchParams();
   const websiteId = params.get("id");
-  const isSources = params.get("view") === "sources";
+  const view = params.get("view");
+  const isSources = view === "sources";
+  const isCountry = view === "country";
   const [user, setUser] = useState<any>(null);
   const [sites, setSites] = useState<any[]>([]);
   const [live, setLive] = useState<any>(null);
@@ -65,17 +67,35 @@ function RealtimeInner() {
   const pages = live?.top_pages_live || [];
 
   return (
-    <AppShell user={user} websites={sites} title={isSources ? "Real Time / Sources" : "Real Time / Overview"}>
+    <AppShell user={user} websites={sites} title={isSources ? "Real Time / Sources" : isCountry ? "Real Time / Country" : "Real Time / Overview"}>
       <div className="w-full max-w-[1400px] mx-auto space-y-3 lg:space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="text-[13px] text-slate-500">Real Time <span className="text-navy-700 font-medium">/ {isSources ? "Sources" : "Overview"}</span></div>
+          <div className="text-[13px] text-slate-500">Real Time <span className="text-navy-700 font-medium">/ {isSources ? "Sources" : isCountry ? "Country" : "Overview"}</span></div>
           <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="text-xs bg-white border border-slate-200 rounded-full px-3 py-1 w-fit">
             <option value={5}>Last 5 minutes</option>
             <option value={30}>Last 30 minutes</option>
           </select>
         </div>
 
-        {!isSources && (
+        {isCountry && (
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-card">
+            <div className="px-4 py-3 border-b border-slate-100">
+              <h2 className="text-sm font-semibold text-navy-800">Countries active now</h2>
+              <p className="text-xs text-slate-500">Live window only. Historical countries are under Audience.</p>
+            </div>
+            <ul className="divide-y divide-slate-100">
+              {(live?.countries || []).map((r: any) => (
+                <li key={r.country} className="px-4 py-2.5 flex justify-between text-sm gap-3">
+                  <span className="truncate">{r.country}</span>
+                  <span className="font-semibold shrink-0">{r.users} <span className="text-slate-400 font-normal text-xs">({r.pct}%)</span></span>
+                </li>
+              ))}
+              {!(live?.countries || []).length && <li className="px-4 py-10 text-center text-sm text-slate-400">No live countries in this window</li>}
+            </ul>
+          </div>
+        )}
+
+        {!isSources && !isCountry && (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
               <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-card text-center">

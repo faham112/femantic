@@ -23,17 +23,17 @@ export default function AppShell({
   const [picker, setPicker] = useState(false);
   const [account, setAccount] = useState(false);
   const siteId = searchParams.get("id");
-  const dim = searchParams.get("dim");
   const view = searchParams.get("view");
+  const reportDim = pathname.startsWith("/dashboard/report/") ? decodeURIComponent(pathname.split("/")[3] || "") : "";
   const current = websites.find((w) => String(w.id) === siteId) || websites[0];
 
   useEffect(() => {
     const skip = ["/dashboard", "/dashboard/sites/new", "/dashboard/plan", "/dashboard/settings", "/dashboard/help", "/admin"];
     if (!siteId && websites[0] && !skip.includes(pathname) && pathname.startsWith("/dashboard")) {
-      const extra = [dim ? `dim=${dim}` : "", view ? `view=${view}` : ""].filter(Boolean).map((x) => `&${x}`).join("");
+      const extra = pathname.startsWith("/dashboard/realtime") && view ? `&view=${view}` : "";
       router.replace(`${pathname}?id=${websites[0].id}${extra}`);
     }
-  }, [siteId, websites, pathname, router, dim, view]);
+  }, [siteId, websites, pathname, router, view]);
 
   const logout = () => { clearTokens(); router.push("/"); };
   const href = (path: string, extra = "") => {
@@ -59,43 +59,44 @@ export default function AppShell({
         <Link href={current?.id ? `/dashboard?id=${current.id}` : "/dashboard"} onClick={() => setOpen(false)} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${pathname === "/dashboard" ? "bg-sky-50 text-navy-700 font-medium" : "text-slate-600 hover:bg-slate-50"}`}><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
 
         <Group icon={Radio} label="Real Time" openDefault={onRealtime}>
-          <Sub href={href("/dashboard/realtime")} label="Overview" active={onRealtime && view !== "sources"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/realtime")} label="Overview" active={onRealtime && view !== "sources" && view !== "country"} close={() => setOpen(false)} />
           <Sub href={href("/dashboard/realtime", "&view=sources")} label="Sources" active={onRealtime && view === "sources"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=country")} label="Country" active={dim === "country"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/realtime", "&view=country")} label="Country" active={onRealtime && view === "country"} close={() => setOpen(false)} />
         </Group>
 
-        <Group icon={Users} label="Audience" openDefault={pathname.startsWith("/dashboard/analytics") || ["device","browser","os","hostname"].includes(dim || "")}>
+        <Group icon={Users} label="Audience" openDefault={pathname.startsWith("/dashboard/analytics") || ["device","browser","os","hostname","country"].includes(reportDim)}>
           <Sub href={href("/dashboard/analytics")} label="Overview" active={pathname.startsWith("/dashboard/analytics")} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=device")} label="Device" active={dim === "device"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=country")} label="Country" active={dim === "country"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=os")} label="Operating System" active={dim === "os"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=browser")} label="Browser" active={dim === "browser"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=hostname")} label="Hostname" active={dim === "hostname"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/device")} label="Device" active={reportDim === "device"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/country")} label="Country" active={reportDim === "country"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/os")} label="Operating System" active={reportDim === "os"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/browser")} label="Browser" active={reportDim === "browser"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/hostname")} label="Hostname" active={reportDim === "hostname"} close={() => setOpen(false)} />
         </Group>
 
         <Link href={href("/dashboard/content")} onClick={() => setOpen(false)} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${pathname.startsWith("/dashboard/content") ? "bg-sky-50 text-navy-700 font-medium" : "text-slate-600 hover:bg-slate-50"}`}><FileText className="w-4 h-4" /> Content</Link>
 
-        <Group icon={Bot} label="AI Traffic" badge="Beta" openDefault={dim === "traffic"}>
-          <Sub href={href("/dashboard/report", "&dim=traffic")} label="Overview" active={dim === "traffic"} close={() => setOpen(false)} />
+        <Group icon={Bot} label="AI Traffic" badge="Beta" openDefault={reportDim === "traffic"}>
+          <Sub href={href("/dashboard/report/traffic")} label="Overview" active={reportDim === "traffic"} close={() => setOpen(false)} />
         </Group>
 
-        <Group icon={Megaphone} label="Acquisition" openDefault={pathname.startsWith("/dashboard/acquisition") || ["entry","exit","utm_source","utm_medium","utm_campaign","source_medium","referrer","referrer_source"].includes(dim || "")}>
-          <Sub href={href("/dashboard/report", "&dim=entry")} label="Entry pages" active={dim === "entry"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=exit")} label="Exit pages" active={dim === "exit"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=utm_source")} label="Source" active={dim === "utm_source"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=utm_medium")} label="Medium" active={dim === "utm_medium"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=utm_campaign")} label="Campaign" active={dim === "utm_campaign"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=source_medium")} label="Source / Medium" active={dim === "source_medium"} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=referrer")} label="Referrer" active={dim === "referrer"} close={() => setOpen(false)} />
+        <Group icon={Megaphone} label="Acquisition" openDefault={pathname.startsWith("/dashboard/acquisition") || ["entry","exit","utm_source","utm_medium","utm_campaign","source_medium","referrer","referrer_source"].includes(reportDim)}>
+          <Sub href={href("/dashboard/acquisition")} label="Overview" active={pathname.startsWith("/dashboard/acquisition")} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/entry")} label="Entry pages" active={reportDim === "entry"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/exit")} label="Exit pages" active={reportDim === "exit"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/utm_source")} label="Source" active={reportDim === "utm_source"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/utm_medium")} label="Medium" active={reportDim === "utm_medium"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/utm_campaign")} label="Campaign" active={reportDim === "utm_campaign"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/source_medium")} label="Source / Medium" active={reportDim === "source_medium"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/report/referrer")} label="Referrer" active={reportDim === "referrer"} close={() => setOpen(false)} />
         </Group>
 
         <Group icon={Activity} label="Events" openDefault={pathname.startsWith("/dashboard/events")}>
           <Sub href={href("/dashboard/events")} label="Event Overview" active={pathname.startsWith("/dashboard/events")} close={() => setOpen(false)} />
-          <Sub href={href("/dashboard/report", "&dim=path")} label="Page Overview" active={dim === "path"} close={() => setOpen(false)} />
+          <Sub href={href("/dashboard/content")} label="Page Overview" active={pathname.startsWith("/dashboard/content")} close={() => setOpen(false)} />
         </Group>
 
-        <Group icon={LineChart} label="Reports" openDefault={pathname.startsWith("/dashboard/report") && !dim}>
-          <Sub href={href("/dashboard/report", "&dim=path")} label="All Reports" active={pathname.startsWith("/dashboard/report") && dim === "path"} close={() => setOpen(false)} />
+        <Group icon={LineChart} label="Reports" openDefault={pathname.startsWith("/dashboard/report")}>
+          <Sub href={href("/dashboard/report/path")} label="All pages" active={reportDim === "path"} close={() => setOpen(false)} />
         </Group>
 
         <Group icon={HelpCircle} label="Help" openDefault={pathname.startsWith("/dashboard/help")}>
@@ -139,7 +140,7 @@ export default function AppShell({
                 <div className="absolute left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
                   {websites.length === 0 && <p className="px-3 py-2 text-sm text-slate-500">No websites yet</p>}
                   {websites.map((w) => (
-                    <button key={w.id} onClick={() => { setPicker(false); router.push(`${pathname}?id=${w.id}${dim ? `&dim=${dim}` : ""}${view ? `&view=${view}` : ""}`); }}
+                    <button key={w.id} onClick={() => { setPicker(false); router.push(`${pathname}?id=${w.id}${pathname.startsWith("/dashboard/realtime") && view ? `&view=${view}` : ""}`); }}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50">
                       <div className="font-medium text-slate-800 truncate">{w.name}</div>
                       <div className="text-xs text-slate-500 truncate">{w.domain}</div>

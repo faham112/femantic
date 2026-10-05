@@ -120,8 +120,22 @@ async def live_stats(
         .all()
     )
 
+    countries = (
+        db.query(func.coalesce(PageView.country, "Unknown"), func.count(func.distinct(PageView.visitor_id)))
+        .filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human")
+        .group_by(PageView.country)
+        .order_by(func.count(func.distinct(PageView.visitor_id)).desc())
+        .limit(30)
+        .all()
+    )
+    country_total = sum(n for _, n in countries) or 1
+
     return {
         "live_visitors": live_visitors,
+        "countries": [
+            {"country": name, "users": n, "pct": round(n * 100 / country_total, 1)}
+            for name, n in countries
+        ],
         "window_minutes": minutes,
         "pageviews_last_5min": pageviews_window,
         "devices": devices,

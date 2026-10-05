@@ -159,17 +159,17 @@ function DashboardInner() {
                 <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-card">
                   <h3 className="text-sm font-semibold text-slate-700 mb-3">Devices (Users)</h3>
                   <Donut segments={deviceSegs.every((s) => s.value === 0) ? [{ label: "No data", value: 1, color: "#cbd5e1" }] : deviceSegs} />
-                  {activeId && <Link href={`/dashboard/report${q}&dim=device`} className="mt-3 block text-center text-sm text-navy-700 font-medium">View all Audience Devices →</Link>}
+                  {activeId && <Link href={`/dashboard/report/device${q}`} className="mt-3 block text-center text-sm text-navy-700 font-medium">View all Audience Devices →</Link>}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
-                <ListCard title="Referrer + Source" right="Pageviews" rows={(stats?.top_referrers || []).map((r: any) => [r.referrer || "(direct)", r.views])} href={`/dashboard/report${q}&dim=referrer_source`} more="View all Referrer + Source" />
-                <ListCard title="Country" right="Users" rows={countries.map((c: any) => [`${FLAGS[c.label] || "🌐"}  ${c.label}`, c.views, c.pct])} href={`/dashboard/report${q}&dim=country`} more="View all Countries" showPct />
+                <ListCard title="Referrer + Source" right="Pageviews" rows={(stats?.top_referrers || []).map((r: any) => [r.referrer || "(direct)", r.views])} href={`/dashboard/report/referrer_source${q}`} more="View all Referrer + Source" />
+                <ListCard title="Country" right="Users" rows={countries.map((c: any) => [`${FLAGS[c.label] || "🌐"}  ${c.label}`, c.views, c.pct])} href={`/dashboard/report/country${q}`} more="View all Countries" showPct />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
-                <ListCard title="Browsers" right="Pageviews" rows={browsers.map((b: any) => [b.label, b.views, b.pct])} href={`/dashboard/report${q}&dim=browser`} more="View all Browsers" showPct />
+                <ListCard title="Browsers" right="Pageviews" rows={browsers.map((b: any) => [b.label, b.views, b.pct])} href={`/dashboard/report/browser${q}`} more="View all Browsers" showPct />
                 <EmptyCard title="Events" right="Hits" empty={!events.length} rows={events.map((e: any) => [e.name, e.count])} href={`/dashboard/events${q}`} more="View all Events" />
               </div>
             </div>
