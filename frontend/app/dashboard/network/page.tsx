@@ -39,7 +39,7 @@ function Inner() {
         <h1 className="text-lg font-bold text-navy-800">All sites</h1>
         <div className="flex gap-1">{[7,14,30].map((d) => <button key={d} onClick={() => setDays(d)} className={`min-h-[36px] min-w-[44px] px-3 py-1.5 text-xs rounded-md font-medium ${days===d?"bg-navy-700 text-white":"bg-white border border-slate-200"}`}>{d}d</button>)}</div>
       </div>
-      <div className="grid grid-cols-1 xs:grid-cols-3 gap-2 sm:gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-4">
         {[["Sites", t.sites || 0], ["Users", t.users || 0], ["Pageviews", t.pageviews || 0]].map(([l, v]) => (
           <div key={String(l)} className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 min-w-0">
             <div className="text-xs text-slate-500">{l}</div>
