@@ -22,9 +22,32 @@ router = APIRouter(prefix="/api/track", tags=["Tracking"])
 _hits: dict[str, list[float]] = defaultdict(list)
 
 
+_last_sweep = 0.0
+
+
+def _client_ip(request: Request) -> str:
+    """Real visitor IP. Behind nginx every request comes from 127.0.0.1, so trust
+    X-Real-IP / X-Forwarded-For only when the direct peer is a local proxy."""
+    peer = request.client.host if request.client else ""
+    if peer in ("127.0.0.1", "::1", "localhost") or peer.startswith(("10.", "192.168.", "172.")):
+        real = (request.headers.get("x-real-ip") or "").strip()
+        if real:
+            return real
+        fwd = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+        if fwd:
+            return fwd
+    return peer or "unknown"
+
+
 def _rate_ok(ip: str) -> bool:
+    global _last_sweep
     limit = getattr(settings, "TRACK_RATE_LIMIT", 60) or 60
     now = time.time()
+    if now - _last_sweep > 300:
+        # drop idle IPs so the table can't grow forever under heavy traffic
+        for key in [k for k, v in _hits.items() if not v or now - v[-1] > 120]:
+            _hits.pop(key, None)
+        _last_sweep = now
     window = [t for t in _hits[ip] if now - t < 60]
     window.append(now)
     _hits[ip] = window[-300:]
@@ -105,7 +128,7 @@ def _site_by_key(db: Session, api_key: str):
 @router.post("/{api_key}")
 async def track_pageview(api_key: str, event: TrackEvent, request: Request, db: Session = Depends(get_db), user_agent: Optional[str] = Header(None)):
     try:
-        ip = request.client.host if request.client else "unknown"
+        ip = _client_ip(request)
         if not _rate_ok(ip):
             raise HTTPException(status_code=429, detail="Too many track events")
         website = _site_by_key(db, api_key)
@@ -158,7 +181,7 @@ async def track_pageview(api_key: str, event: TrackEvent, request: Request, db: 
     except Exception as e:
         db.rollback()
         log.exception("track failed")
-        return {"status": "ok", "stored": False, "error": str(e)[:200]}
+        return {"status": "ok", "stored": False}
 
 
 def _period_stats(db: Session, website_id: int, since: datetime, until: datetime):

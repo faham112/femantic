@@ -88,29 +88,23 @@ async def live_stats(
         for s, m, n in sources
     ]
 
-    minute_series = []
-    for i in range(30):
-        a = now - timedelta(minutes=30 - i)
-        b = a + timedelta(minutes=1)
-        n = db.query(func.count(PageView.id)).filter(
+    # One query for the last 30 minutes, bucketed in Python, instead of 42 count queries per poll.
+    stamps = [
+        t for (t,) in db.query(PageView.created_at).filter(
             PageView.website_id == website_id,
-            PageView.created_at >= a,
-            PageView.created_at < b,
+            PageView.created_at >= since30,
             PageView.traffic_label == "human",
-        ).scalar() or 0
-        minute_series.append(n)
-
-    last_minute = []
-    for i in range(12):
-        a = now - timedelta(seconds=60 - i * 5)
-        b = a + timedelta(seconds=5)
-        n = db.query(func.count(PageView.id)).filter(
-            PageView.website_id == website_id,
-            PageView.created_at >= a,
-            PageView.created_at < b,
-            PageView.traffic_label == "human",
-        ).scalar() or 0
-        last_minute.append(n)
+        ).all() if t is not None
+    ]
+    minute_series = [0] * 30
+    last_minute = [0] * 12
+    for t in stamps:
+        ts = t.replace(tzinfo=None) if t.tzinfo else t
+        age = (now - ts).total_seconds()
+        if 0 <= age < 1800:
+            minute_series[29 - int(age // 60)] += 1
+        if 0 <= age < 60:
+            last_minute[11 - int(age // 5)] += 1
 
     recent = (
         db.query(PageView)
