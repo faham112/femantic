@@ -4,6 +4,7 @@ from sqlalchemy import func, desc, cast, Date
 from typing import Optional
 from datetime import datetime, timedelta, date
 from collections import defaultdict
+import ipaddress
 import re
 import time
 import logging
@@ -29,7 +30,11 @@ def _client_ip(request: Request) -> str:
     """Real visitor IP. Behind nginx every request comes from 127.0.0.1, so trust
     X-Real-IP / X-Forwarded-For only when the direct peer is a local proxy."""
     peer = request.client.host if request.client else ""
-    if peer in ("127.0.0.1", "::1", "localhost") or peer.startswith(("10.", "192.168.", "172.")):
+    try:
+        local_peer = ipaddress.ip_address(peer).is_private or ipaddress.ip_address(peer).is_loopback
+    except ValueError:
+        local_peer = peer == "localhost"
+    if local_peer:
         real = (request.headers.get("x-real-ip") or "").strip()
         if real:
             return real
