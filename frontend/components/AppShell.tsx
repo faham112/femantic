@@ -28,6 +28,15 @@ export default function AppShell({
   const current = websites.find((w) => String(w.id) === siteId) || websites[0];
 
   useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+  }, [open]);
+
+  useEffect(() => {
     const skip = ["/dashboard", "/dashboard/sites/new", "/dashboard/plan", "/dashboard/settings", "/dashboard/help", "/admin"];
     if (!siteId && websites[0] && !skip.includes(pathname) && pathname.startsWith("/dashboard")) {
       const extra = pathname.startsWith("/dashboard/realtime") && view ? `&view=${view}` : "";
@@ -45,7 +54,7 @@ export default function AppShell({
   const isClient = user?.role === "client";
   const onRealtime = pathname.startsWith("/dashboard/realtime");
   const Sidebar = (
-    <aside className="flex flex-col h-full bg-white border-r border-slate-200 w-[240px] min-w-[240px]">
+    <aside className="flex flex-col h-full bg-white border-r border-slate-200 w-[240px] max-w-full">
       <Link href="/" className="px-4 h-14 flex items-center gap-2 border-b border-slate-100">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-navy-700 flex items-center justify-center">
           <BarChart3 className="w-4 h-4 text-white" />
@@ -121,13 +130,13 @@ export default function AppShell({
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-navy-900/40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-0 h-full shadow-xl">{Sidebar}</div>
+          <div className="absolute left-0 top-0 h-full max-w-[85vw] shadow-xl">{Sidebar}</div>
         </div>
       )}
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
           <div className="h-14 px-3 sm:px-5 flex items-center gap-2 sm:gap-3">
-            <button className="lg:hidden p-2 text-slate-600" onClick={() => setOpen(true)} aria-label="Menu">
+            <button className="lg:hidden p-2 -ml-1 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-600" onClick={() => setOpen(true)} aria-label="Menu">
               {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div className="relative">
@@ -137,7 +146,7 @@ export default function AppShell({
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
               {picker && (
-                <div className="absolute left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
+                <div className="absolute left-0 mt-1 w-64 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
                   {websites.length === 0 && <p className="px-3 py-2 text-sm text-slate-500">No websites yet</p>}
                   {websites.map((w) => (
                     <button key={w.id} onClick={() => { setPicker(false); router.push(`${pathname}?id=${w.id}${pathname.startsWith("/dashboard/realtime") && view ? `&view=${view}` : ""}`); }}
@@ -181,7 +190,7 @@ export default function AppShell({
           </div>
           <div className="px-3 sm:px-5 h-9 flex items-center text-[13px] text-slate-500 border-t border-slate-100">{title}</div>
         </header>
-        <main className="flex-1 p-3 sm:p-5">{children}</main>
+        <main className="flex-1 min-w-0 p-3 sm:p-5"><div className="w-full max-w-[1400px] mx-auto">{children}</div></main>
       </div>
     </div>
   );

@@ -54,13 +54,13 @@ function Inner() {
   return (
     <AppShell user={user} websites={sites} title="Acquisition">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-lg font-bold text-navy-800">Traffic sources</h1>
-          <p className="text-xs text-slate-500">Campaign links: ?utm_source=&utm_medium=&utm_campaign=&utm_term=&utm_content=</p>
+          <p className="text-xs text-slate-500 break-all">Campaign links: ?utm_source=&utm_medium=&utm_campaign=&utm_term=&utm_content=</p>
         </div>
-        <div className="flex gap-1">{[7,14,30].map((d) => <button key={d} onClick={() => setDays(d)} className={`px-3 py-1.5 text-xs rounded-md font-medium ${days===d?"bg-navy-700 text-white":"bg-white border border-slate-200"}`}>{d}d</button>)}</div>
+        <div className="flex gap-1">{[7,14,30].map((d) => <button key={d} onClick={() => setDays(d)} className={`min-h-[36px] min-w-[44px] px-3 py-1.5 text-xs rounded-md font-medium ${days===d?"bg-navy-700 text-white":"bg-white border border-slate-200"}`}>{d}d</button>)}</div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 sm:gap-4">
         {BLOCKS.map(([dim, title]) => (
           <Box key={dim} title={title} href={id ? `/dashboard/report/${dim}?id=${id}` : `/dashboard/report/${dim}`} rows={(tables[dim] || []).map((r: any) => [r.label, r.views])} />
         ))}
@@ -71,12 +71,12 @@ function Inner() {
 
 function Box({ title, rows, href, empty = "No tagged visits yet" }: { title: string; rows: [string, number][]; href: string; empty?: string }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-card">
-      <Link href={href} className="bg-[#0d4f7a] text-white px-4 py-2 text-sm font-semibold flex justify-between">
-        <span>{title}</span><span className="text-white/70 text-xs font-normal">View all</span>
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-card min-w-0">
+      <Link href={href} className="bg-[#0d4f7a] text-white px-4 py-2 text-sm font-semibold flex justify-between gap-2 min-h-[40px] items-center">
+        <span className="truncate">{title}</span><span className="text-white/70 text-xs font-normal shrink-0">View all</span>
       </Link>
       <ul className="divide-y divide-slate-100">
-        {rows.slice(0, 8).map(([a, b]) => <li key={a} className="px-4 py-2.5 flex justify-between text-sm gap-2"><span className="truncate">{a}</span><span className="font-semibold">{Number(b).toLocaleString()}</span></li>)}
+        {rows.slice(0, 8).map(([a, b]) => <li key={a} className="px-4 py-2.5 flex justify-between text-sm gap-2"><span className="truncate min-w-0" title={a}>{a}</span><span className="font-semibold shrink-0">{Number(b).toLocaleString()}</span></li>)}
         {!rows.length && <li className="px-4 py-8 text-sm text-slate-400">{empty}</li>}
       </ul>
     </div>

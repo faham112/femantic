@@ -31,17 +31,17 @@ function Inner() {
   const pages = stats?.top_pages || [];
   return (
     <AppShell user={user} websites={sites} title="Content">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h1 className="text-lg font-bold text-navy-800">Top content</h1>
-        <div className="flex gap-1">{[7,14,30].map((d) => <button key={d} onClick={() => setDays(d)} className={`px-3 py-1.5 text-xs rounded-md font-medium ${days===d?"bg-navy-700 text-white":"bg-white border border-slate-200"}`}>{d}d</button>)}</div>
+        <div className="flex gap-1">{[7,14,30].map((d) => <button key={d} onClick={() => setDays(d)} className={`min-h-[36px] min-w-[44px] px-3 py-1.5 text-xs rounded-md font-medium ${days===d?"bg-navy-700 text-white":"bg-white border border-slate-200"}`}>{d}d</button>)}</div>
       </div>
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-card">
-        <div className="grid grid-cols-12 bg-[#0d4f7a] text-white text-xs font-semibold px-4 py-2">
+        <div className="grid grid-cols-12 gap-2 bg-[#0d4f7a] text-white text-xs font-semibold px-3 sm:px-4 py-2">
           <div className="col-span-8">Page</div><div className="col-span-4 text-right">Pageviews</div>
         </div>
         {pages.map((p: any) => (
-          <div key={p.path} className="grid grid-cols-12 px-4 py-2.5 text-sm border-b border-slate-100">
-            <div className="col-span-8 truncate">{p.path}</div>
+          <div key={p.path} className="grid grid-cols-12 gap-2 px-3 sm:px-4 py-2.5 text-sm border-b border-slate-100">
+            <div className="col-span-8 truncate min-w-0" title={p.path}>{p.path}</div>
             <div className="col-span-4 text-right font-semibold">{p.views.toLocaleString()}</div>
           </div>
         ))}

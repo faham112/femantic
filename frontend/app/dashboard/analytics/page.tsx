@@ -51,23 +51,23 @@ function AnalyticsInner() {
         <h1 className="text-lg font-bold text-navy-800">Audience</h1>
         <div className="flex gap-1">
           {[7, 14, 30].map((d) => (
-            <button key={d} onClick={() => setDays(d)} className={`px-3 py-1.5 text-xs rounded-md font-medium ${days === d ? "bg-navy-700 text-white" : "bg-white border border-slate-200"}`}>{d}d</button>
+            <button key={d} onClick={() => setDays(d)} className={`min-h-[36px] min-w-[44px] px-3 py-1.5 text-xs rounded-md font-medium ${days === d ? "bg-navy-700 text-white" : "bg-white border border-slate-200"}`}>{d}d</button>
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4">
         {[["Users", stats?.true_traffic ?? 0], ["Sessions", stats?.unique_sessions ?? 0], ["Pageviews", stats?.total_pageviews ?? 0], ["Avg duration", formatDuration(stats?.avg_duration_seconds || 0)]].map(([l, v]) => (
-          <div key={String(l)} className="bg-white border border-slate-200 rounded-xl p-4 shadow-card">
+          <div key={String(l)} className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-card min-w-0">
             <div className="text-xs text-slate-500">{l}</div>
-            <div className="text-2xl font-bold text-navy-800 mt-1">{typeof v === "number" ? v.toLocaleString() : v}</div>
+            <div className="text-xl sm:text-2xl font-bold text-navy-800 mt-1 truncate">{typeof v === "number" ? v.toLocaleString() : v}</div>
           </div>
         ))}
       </div>
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-card mb-4 h-[240px]"><DualLineChart current={series.current} previous={series.previous} /></div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-card mb-4 h-[180px] sm:h-[220px] lg:h-[260px]"><DualLineChart current={series.current} previous={series.previous} /></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         <Card title="Countries" rows={(stats?.countries || []).map((c: any) => [c.country, c.views])} empty="No geo yet — enable CF-IPCountry or wait for tagged visits" />
         <Card title="Top Pages" rows={(stats?.top_pages || []).map((p: any) => [p.path, p.views])} />
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-card">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-card min-w-0">
           <h3 className="font-semibold text-sm mb-3">Devices</h3>
           <Donut segments={segs.every((s) => !s.value) ? [{ label: "No data", value: 1, color: "#cbd5e1" }] : segs} />
         </div>
@@ -78,11 +78,11 @@ function AnalyticsInner() {
 
 function Card({ title, rows, empty = "No data yet" }: { title: string; rows: [string, number][]; empty?: string }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-card overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-card overflow-hidden min-w-0">
       <div className="bg-[#0d4f7a] text-white px-4 py-2 text-sm font-semibold">{title}</div>
       <ul className="divide-y divide-slate-100">
         {rows.slice(0, 8).map(([a, b]) => (
-          <li key={a} className="px-4 py-2 flex justify-between text-sm gap-2"><span className="truncate">{a}</span><span className="font-semibold">{Number(b).toLocaleString()}</span></li>
+          <li key={a} className="px-4 py-2 flex justify-between text-sm gap-2"><span className="truncate min-w-0" title={a}>{a}</span><span className="font-semibold shrink-0">{Number(b).toLocaleString()}</span></li>
         ))}
         {!rows.length && <li className="px-4 py-6 text-sm text-slate-400">{empty}</li>}
       </ul>

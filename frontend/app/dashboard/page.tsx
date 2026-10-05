@@ -103,7 +103,7 @@ function DashboardInner() {
         <div className="w-full max-w-[1400px] mx-auto">
           <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 mb-3">
             <span className="text-[13px] font-medium text-slate-700">Dashboard</span>
-            <button onClick={() => setPicker((v) => !v)} className="self-start xs:self-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-navy-800">
+            <button onClick={() => setPicker((v) => !v)} className="self-start xs:self-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 min-h-[36px] text-xs font-medium text-navy-800">
               {fmtDate(start)} → {fmtDate(end)} <Calendar className="w-3.5 h-3.5 text-navy-700" />
             </button>
           </div>

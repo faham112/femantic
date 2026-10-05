@@ -71,7 +71,7 @@ function RealtimeInner() {
       <div className="w-full max-w-[1400px] mx-auto space-y-3 lg:space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="text-[13px] text-slate-500">Real Time <span className="text-navy-700 font-medium">/ {isSources ? "Sources" : isCountry ? "Country" : "Overview"}</span></div>
-          <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="text-xs bg-white border border-slate-200 rounded-full px-3 py-1 w-fit">
+          <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="text-xs bg-white border border-slate-200 rounded-full px-3 py-1.5 min-h-[36px] w-fit">
             <option value={5}>Last 5 minutes</option>
             <option value={30}>Last 30 minutes</option>
           </select>
@@ -151,7 +151,7 @@ function RealtimeInner() {
               </div>
             </div>
             <div className="table-scroll">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
                 <thead className="text-left text-xs text-slate-500 border-b border-slate-100">
                   <tr>
                     <th className="px-3 py-2 font-medium">Source</th>
@@ -163,8 +163,8 @@ function RealtimeInner() {
                 <tbody>
                   {rows.map((r: any, i: number) => (
                     <tr key={i} className="border-t border-slate-100">
-                      <td className="px-3 py-2 truncate max-w-[160px]"><Link2 className="w-3.5 h-3.5 inline mr-1 text-slate-400" />{r.source}</td>
-                      <td className="px-3 py-2 truncate max-w-[180px]">{r.medium}</td>
+                      <td className="px-3 py-2 truncate" title={r.source}><Link2 className="w-3.5 h-3.5 inline mr-1 text-slate-400" />{r.source}</td>
+                      <td className="px-3 py-2 truncate" title={r.medium}>{r.medium}</td>
                       <td className="px-3 py-2 font-semibold">{r.users}</td>
                       <td className="px-3 py-2 text-slate-500">{r.pct}%</td>
                     </tr>
