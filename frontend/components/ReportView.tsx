@@ -75,32 +75,32 @@ export default function ReportView({ dim }: { dim: string }) {
         </div>
         <div className="flex gap-1">
           {[7, 14, 30].map((d) => (
-            <button key={d} onClick={() => setDays(d)} className={`px-3 py-1.5 text-xs rounded-md font-medium ${days === d ? "bg-navy-700 text-white" : "bg-white border border-slate-200"}`}>{d}d</button>
+            <button key={d} onClick={() => setDays(d)} className={`min-h-[36px] min-w-[44px] px-3 py-1.5 text-xs rounded-md font-medium ${days === d ? "bg-navy-700 text-white" : "bg-white border border-slate-200"}`}>{d}d</button>
           ))}
         </div>
       </div>
       <div key={dim} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-card">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${title.toLowerCase()}…`} className="w-full sm:w-64 border border-slate-200 rounded-lg px-3 py-1.5 text-sm" />
-          <span className="text-xs text-slate-400">{filtered.length}</span>
+        <div className="px-3 sm:px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${title.toLowerCase()}…`} className="min-w-0 flex-1 sm:flex-none sm:w-64 border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+          <span className="text-xs text-slate-400 shrink-0">{filtered.length}</span>
         </div>
         {loading ? (
           <div className="p-10 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy-600" /></div>
         ) : (
           <div className="table-scroll">
-            <table className="w-full text-sm min-w-[320px]">
+            <table className="w-full text-sm table-fixed !min-w-0">
               <thead className="bg-[#0d4f7a] text-white text-left">
-                <tr><th className="px-4 py-2 font-medium">Name</th><th className="px-4 py-2 font-medium w-24">Views</th><th className="px-4 py-2 font-medium w-28">Share</th></tr>
+                <tr><th className="px-3 sm:px-4 py-2 font-medium">Name</th><th className="px-3 sm:px-4 py-2 font-medium w-20 sm:w-24">Views</th><th className="px-3 sm:px-4 py-2 font-medium w-28 sm:w-40">Share</th></tr>
               </thead>
               <tbody>
                 {filtered.map((r) => (
                   <tr key={`${dim}-${r.label}`} className="border-t border-slate-100">
-                    <td className="px-4 py-2 truncate max-w-[240px]">{r.label}</td>
-                    <td className="px-4 py-2 font-semibold">{Number(r.views).toLocaleString()}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-3 sm:px-4 py-2 truncate" title={String(r.label)}>{r.label}</td>
+                    <td className="px-3 sm:px-4 py-2 font-semibold">{Number(r.views).toLocaleString()}</td>
+                    <td className="px-3 sm:px-4 py-2">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-slate-100 rounded"><div className="h-1.5 bg-navy-600 rounded" style={{ width: `${Math.min(100, r.pct)}%` }} /></div>
-                        <span className="text-xs text-slate-500 w-10">{r.pct}%</span>
+                        <span className="text-xs text-slate-500 w-10 shrink-0 text-right">{r.pct}%</span>
                       </div>
                     </td>
                   </tr>

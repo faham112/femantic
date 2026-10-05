@@ -30,16 +30,16 @@ function Inner() {
   return (
     <AppShell user={user} websites={sites} title="Events">
       <h1 className="text-lg font-bold text-navy-800 mb-2">Custom events</h1>
-      <p className="text-xs text-slate-500 mb-4">Call <code className="bg-slate-100 px-1 rounded">Femantic.track("signup")</code> from the tracker snippet.</p>
+      <p className="text-xs text-slate-500 mb-4 break-words">Call <code className="bg-slate-100 px-1 rounded">Femantic.track("signup")</code> from the tracker snippet.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-card">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-card min-w-0">
           <div className="bg-[#0d4f7a] text-white px-4 py-2 text-sm font-semibold">Totals</div>
           <ul className="divide-y divide-slate-100">
-            {(data.totals || []).map((e: any) => <li key={e.name} className="px-4 py-2.5 flex justify-between text-sm"><span>{e.name}</span><span className="font-semibold">{e.count}</span></li>)}
+            {(data.totals || []).map((e: any) => <li key={e.name} className="px-4 py-2.5 flex justify-between text-sm gap-2"><span className="truncate min-w-0">{e.name}</span><span className="font-semibold shrink-0">{e.count}</span></li>)}
             {!data.totals?.length && <li className="px-4 py-8 text-sm text-slate-400">No custom events yet</li>}
           </ul>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-card">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-card min-w-0">
           <div className="bg-[#0d4f7a] text-white px-4 py-2 text-sm font-semibold">Recent</div>
           <ul className="divide-y divide-slate-100">
             {(data.recent || []).map((e: any, i: number) => <li key={i} className="px-4 py-2.5 text-sm flex justify-between gap-2"><span className="truncate">{e.name}</span><span className="text-slate-400 text-xs shrink-0">{e.created_at?.slice(0,16)?.replace("T"," ")}</span></li>)}

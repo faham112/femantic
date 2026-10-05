@@ -13,11 +13,11 @@ export function DualLineChart({ current = [], previous = [], height = 220 }: { c
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full" preserveAspectRatio="none">
       {[0.25, 0.5, 0.75, 1].map((g) => (
-        <line key={g} x1={pad} x2={w - 8} y1={h - pad - g * (h - pad * 2)} y2={h - pad - g * (h - pad * 2)} stroke="#e5e7eb" strokeWidth="1" />
+        <line key={g} x1={pad} x2={w - 8} y1={h - pad - g * (h - pad * 2)} y2={h - pad - g * (h - pad * 2)} stroke="#e5e7eb" strokeWidth="1" vectorEffect="non-scaling-stroke" />
       ))}
       <polygon points={area} fill="url(#fillA)" opacity="0.35" />
-      <polyline points={toPts(b)} fill="none" stroke="#f59a23" strokeWidth="2.2" />
-      <polyline points={toPts(a)} fill="none" stroke="#1a4a73" strokeWidth="2.4" />
+      <polyline points={toPts(b)} fill="none" stroke="#f59a23" strokeWidth="2.2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+      <polyline points={toPts(a)} fill="none" stroke="#1a4a73" strokeWidth="2.4" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
       <defs>
         <linearGradient id="fillA" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
@@ -47,7 +47,7 @@ export function Donut({ segments }: { segments: { label: string; value: number; 
   const c = 2 * Math.PI * r;
   return (
     <div className="flex items-center gap-4">
-      <svg width="96" height="96" viewBox="0 0 96 96">
+      <svg width="96" height="96" viewBox="0 0 96 96" className="shrink-0">
         <circle cx="48" cy="48" r={r} fill="none" stroke="#e2e8f0" strokeWidth="14" />
         {segments.map((seg) => {
           const len = (seg.value / total) * c;
@@ -58,11 +58,11 @@ export function Donut({ segments }: { segments: { label: string; value: number; 
         })}
         <circle cx="48" cy="48" r="22" fill="white" />
       </svg>
-      <ul className="text-xs space-y-2 flex-1">
+      <ul className="text-xs space-y-2 flex-1 min-w-0">
         {segments.map((s) => (
           <li key={s.label} className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
-            <span className="text-slate-600 flex-1">{s.label}</span>
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+            <span className="text-slate-600 flex-1 truncate">{s.label}</span>
             <span className="font-semibold text-slate-800">{Math.round((s.value / total) * 100)}%</span>
           </li>
         ))}

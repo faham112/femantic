@@ -37,17 +37,18 @@ function Inner() {
     <AppShell user={user} websites={sites} title="Network">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h1 className="text-lg font-bold text-navy-800">All sites</h1>
-        <div className="flex gap-1">{[7,14,30].map((d) => <button key={d} onClick={() => setDays(d)} className={`px-3 py-1.5 text-xs rounded-md font-medium ${days===d?"bg-navy-700 text-white":"bg-white border border-slate-200"}`}>{d}d</button>)}</div>
+        <div className="flex gap-1">{[7,14,30].map((d) => <button key={d} onClick={() => setDays(d)} className={`min-h-[36px] min-w-[44px] px-3 py-1.5 text-xs rounded-md font-medium ${days===d?"bg-navy-700 text-white":"bg-white border border-slate-200"}`}>{d}d</button>)}</div>
       </div>
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 xs:grid-cols-3 gap-2 sm:gap-3 mb-4">
         {[["Sites", t.sites || 0], ["Users", t.users || 0], ["Pageviews", t.pageviews || 0]].map(([l, v]) => (
-          <div key={String(l)} className="bg-white border border-slate-200 rounded-xl p-4">
+          <div key={String(l)} className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 min-w-0">
             <div className="text-xs text-slate-500">{l}</div>
-            <div className="text-2xl font-bold text-navy-800">{Number(v).toLocaleString()}</div>
+            <div className="text-xl sm:text-2xl font-bold text-navy-800 truncate">{Number(v).toLocaleString()}</div>
           </div>
         ))}
       </div>
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="table-scroll">
         <table className="w-full text-sm">
           <thead className="bg-[#0d4f7a] text-white text-left">
             <tr>
@@ -60,9 +61,9 @@ function Inner() {
           <tbody>
             {(data?.sites || []).map((s: any) => (
               <tr key={s.id} className="border-t border-slate-100">
-                <td className="px-4 py-2">
-                  <Link href={`/dashboard?id=${s.id}`} className="font-medium text-navy-800 hover:underline">{s.name}</Link>
-                  <div className="text-xs text-slate-500">{s.domain}</div>
+                <td className="px-4 py-2 max-w-[260px]">
+                  <Link href={`/dashboard?id=${s.id}`} className="block truncate font-medium text-navy-800 hover:underline">{s.name}</Link>
+                  <div className="text-xs text-slate-500 truncate">{s.domain}</div>
                 </td>
                 <td className="px-4 py-2 font-semibold">{Number(s.users).toLocaleString()}</td>
                 <td className="px-4 py-2 font-semibold">{Number(s.pageviews).toLocaleString()}</td>
@@ -72,6 +73,7 @@ function Inner() {
             {!(data?.sites || []).length && <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">No sites</td></tr>}
           </tbody>
         </table>
+        </div>
       </div>
     </AppShell>
   );
