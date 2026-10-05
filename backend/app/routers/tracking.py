@@ -202,7 +202,7 @@ def _period_stats(db: Session, website_id: int, since: datetime, until: datetime
         bounce = round((singles / users) * 100, 1)
     from app.models import Session as SessModel
     avg_dur = db.query(func.avg(SessModel.duration)).filter(SessModel.website_id == website_id, SessModel.started_at >= since, SessModel.started_at < until).scalar()
-    return views, users if users else sess_q, bounce, int(avg_dur or 0)
+    return views, users if users else sess_q, bounce, int(avg_dur or 0), (sess_q or users)
 
 
 @router.get("/stats/{website_id}", response_model=StatsOverview)
@@ -216,15 +216,15 @@ def get_stats(website_id: int, days: int = 7, db: Session = Depends(get_db), cur
     until = datetime.utcnow()
     since = until - timedelta(days=days)
     prev_since = since - timedelta(days=days)
-    views, users, bounce, avg_dur = _period_stats(db, website_id, since, until)
-    p_views, p_users, p_bounce, _ = _period_stats(db, website_id, prev_since, since)
+    views, users, bounce, avg_dur, sessions = _period_stats(db, website_id, since, until)
+    p_views, p_users, p_bounce, _, p_sessions = _period_stats(db, website_id, prev_since, since)
     top_pages = db.query(PageView.path, func.count(PageView.id).label("views")).filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human").group_by(PageView.path).order_by(desc("views")).limit(10).all()
     top_referrers = db.query(PageView.referrer, func.count(PageView.id).label("views")).filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human", PageView.referrer.isnot(None)).group_by(PageView.referrer).order_by(desc("views")).limit(10).all()
     top_sources = db.query(PageView.utm_source, func.count(PageView.id).label("views")).filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human", PageView.utm_source.isnot(None)).group_by(PageView.utm_source).order_by(desc("views")).limit(10).all()
     devices_q = db.query(PageView.device, func.count(PageView.id)).filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human").group_by(PageView.device).all()
     countries_q = db.query(PageView.country, func.count(PageView.id).label("views")).filter(PageView.website_id == website_id, PageView.created_at >= since, PageView.traffic_label == "human", PageView.country.isnot(None)).group_by(PageView.country).order_by(desc("views")).limit(10).all()
     base = db.query(PageView).filter(PageView.website_id == website_id, PageView.created_at >= since)
-    return StatsOverview(total_pageviews=views, unique_sessions=users, true_traffic=users, bounce_rate=bounce, avg_duration_seconds=avg_dur, previous_users=p_users, previous_sessions=p_users, previous_pageviews=p_views, previous_bounce=p_bounce, top_pages=[{"path": p, "views": v} for p, v in top_pages], top_referrers=[{"referrer": r or "Direct", "views": v} for r, v in top_referrers], top_sources=[{"source": s or "(none)", "views": v} for s, v in top_sources], devices={d or "unknown": c for d, c in devices_q}, countries=[{"country": c, "views": v} for c, v in countries_q], humans=views, bots=base.filter(PageView.traffic_label == "bot").count(), suspicious=base.filter(PageView.traffic_label == "suspicious").count())
+    return StatsOverview(total_pageviews=views, unique_sessions=sessions, true_traffic=users, bounce_rate=bounce, avg_duration_seconds=avg_dur, previous_users=p_users, previous_sessions=p_sessions, previous_pageviews=p_views, previous_bounce=p_bounce, top_pages=[{"path": p, "views": v} for p, v in top_pages], top_referrers=[{"referrer": r or "Direct", "views": v} for r, v in top_referrers], top_sources=[{"source": s or "(none)", "views": v} for s, v in top_sources], devices={d or "unknown": c for d, c in devices_q}, countries=[{"country": c, "views": v} for c, v in countries_q], humans=views, bots=base.filter(PageView.traffic_label == "bot").count(), suspicious=base.filter(PageView.traffic_label == "suspicious").count())
 
 
 @router.get("/series/{website_id}")
