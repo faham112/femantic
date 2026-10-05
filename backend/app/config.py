@@ -24,6 +24,9 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "https://analytics.globalcareerhub.org"
 
+    # Offline DB-IP / MaxMind City Lite MMDB (see scripts/download-geoip.sh)
+    GEOIP_DB_PATH: str = "/var/lib/femantic/dbip-city-lite.mmdb"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

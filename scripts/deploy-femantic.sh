@@ -47,6 +47,10 @@ log "Installing backend requirements"
 "${VENV}/bin/python" -m pip install --quiet -r backend/requirements.txt
 "${VENV}/bin/python" -m pip check
 
+log "Ensuring offline GeoIP City Lite database"
+sudo -n mkdir -p /var/lib/femantic
+GEOIP_DB_PATH=/var/lib/femantic/dbip-city-lite.mmdb bash scripts/download-geoip.sh /var/lib/femantic/dbip-city-lite.mmdb
+
 log "Installing frontend requirements"
 npm --prefix frontend ci --no-audit --no-fund
 
