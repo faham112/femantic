@@ -47,6 +47,10 @@ log "Installing backend requirements"
 "${VENV}/bin/python" -m pip install --quiet -r backend/requirements.txt
 "${VENV}/bin/python" -m pip check
 
+log "Ensuring offline GeoIP City Lite database"
+sudo -n install -d -o "$(id -un)" -g "$(id -gn)" -m 0755 /var/lib/femantic
+bash scripts/download-geoip.sh /var/lib/femantic/dbip-city-lite.mmdb || log "GeoIP download failed; continuing (country falls back to timezone)"
+
 log "Installing frontend requirements"
 npm --prefix frontend ci --no-audit --no-fund
 

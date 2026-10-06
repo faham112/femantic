@@ -14,7 +14,7 @@ from app.models import Website, PageView, User, Event
 from app.schemas import TrackEvent, StatsOverview
 from app.auth import get_current_user, user_can_access_website
 from app.config import settings
-from app.geo import country_from_request
+from app.geo import geo_from_request
 from app.utm import resolve_utms
 from app.sessions_svc import upsert_session
 
@@ -144,7 +144,7 @@ async def track_pageview(api_key: str, event: TrackEvent, request: Request, db: 
         device = event.device or detect_device(ua)
         browser = detect_browser(ua)
         os_name = detect_os(ua)
-        country = country_from_request(request.headers, event.timezone)
+        country, city = geo_from_request(request.headers, ip, event.timezone)
         if kind in ("heartbeat", "event"):
             try:
                 upsert_session(db, website.id, event.visitor_id or event.session_id, event.session_id, country=country, device=device, browser=browser, os=os_name, is_pageview=False)
@@ -166,7 +166,7 @@ async def track_pageview(api_key: str, event: TrackEvent, request: Request, db: 
         pageview = PageView(
             website_id=website.id, path=(event.path or "/")[:512], title=(event.title or "")[:512] or None,
             referrer=event.referrer[:512] if event.referrer else None, user_agent=ua[:1000] if ua else None,
-            ip_address=ip[:45] if ip else None, country=country, device=device, browser=browser, os=os_name,
+            ip_address=ip[:45] if ip else None, country=country, city=city, device=device, browser=browser, os=os_name,
             language=event.language, screen_width=event.screen_width, screen_height=event.screen_height,
             utm_source=utm_source, utm_medium=utm_medium, utm_campaign=utm_campaign, utm_term=utm_term, utm_content=utm_content,
             is_bot=is_bot, traffic_score=score, traffic_label=label, visitor_id=event.visitor_id or event.session_id, session_id=sess_pk,
